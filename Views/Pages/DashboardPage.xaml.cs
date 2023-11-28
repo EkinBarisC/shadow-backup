@@ -27,8 +27,6 @@ namespace Back_It_Up.Views.Pages
 
             navigationService.SetNavigationControl(TopNavigationView);
             contentDialogService.SetContentPresenter(MainContentDialog);
-            //TopNavigationView.SetServiceProvider(serviceProvider);
-
         }
     }
 }

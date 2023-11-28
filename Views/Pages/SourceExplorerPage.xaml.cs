@@ -18,23 +18,19 @@ using Wpf.Ui.Controls;
 namespace Back_It_Up.Views.Pages
 {
     /// <summary>
-    /// Interaction logic for BackupPage.xaml
+    /// Interaction logic for SourceExplorerPage.xaml
     /// </summary>
-    public partial class BackupPage : INavigableView<BackupViewModel>
+    public partial class SourceExplorerPage : INavigableView<SourceExplorerViewModel>
     {
-        public BackupViewModel ViewModel { get; }
-
-        public BackupPage(
-            BackupViewModel viewModel,
-            IContentDialogService contentDialogService
+        public SourceExplorerViewModel ViewModel { get; }
+        public SourceExplorerPage(
+            SourceExplorerViewModel viewModel
             )
         {
             ViewModel = viewModel;
             DataContext = this;
 
             InitializeComponent();
-
-            contentDialogService.SetContentPresenter(InnerContentDialog);
         }
     }
 }

@@ -48,6 +48,8 @@ namespace Back_It_Up
                 services.AddSingleton<SettingsViewModel>();
                 services.AddSingleton<BackupPage>();
                 services.AddSingleton<BackupViewModel>();
+                services.AddSingleton<SourceExplorerPage>();
+                services.AddSingleton<SourceExplorerViewModel>();
             }).Build();
 
         /// <summary>

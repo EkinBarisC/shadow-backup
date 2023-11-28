@@ -46,6 +46,8 @@ namespace Back_It_Up
                 services.AddSingleton<DataViewModel>();
                 services.AddSingleton<SettingsPage>();
                 services.AddSingleton<SettingsViewModel>();
+                services.AddSingleton<BackupPage>();
+                services.AddSingleton<BackupViewModel>();
             }).Build();
 
         /// <summary>

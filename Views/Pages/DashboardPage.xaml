@@ -16,21 +16,20 @@
     Foreground="{DynamicResource TextFillColorPrimaryBrush}"
     mc:Ignorable="d">
 
-    <Grid VerticalAlignment="Top">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="Auto" />
-        </Grid.ColumnDefinitions>
 
-        <ui:Button
-            Grid.Column="0"
-            Command="{Binding ViewModel.CounterIncrementCommand, Mode=OneWay}"
-            Content="Click me!"
-            Icon="Fluent24" />
-        <TextBlock
-            Grid.Column="1"
-            Margin="12,0,0,0"
-            VerticalAlignment="Center"
-            Text="{Binding ViewModel.Counter, Mode=OneWay}" />
+    <Grid>
+        <ui:NavigationView
+            x:Name="TopNavigationView"
+            Padding="42,0,42,0"
+            FrameMargin="0"
+            IsBackButtonVisible="Collapsed"
+            IsPaneToggleVisible="False"
+            MenuItemsSource="{Binding ViewModel.TopMenuItems, Mode=OneWay}"
+            OpenPaneLength="310"
+            PaneDisplayMode="Top"
+            >
+        </ui:NavigationView>
+
+        <ContentPresenter x:Name="MainContentDialog" Grid.Row="0" />
     </Grid>
 </Page>

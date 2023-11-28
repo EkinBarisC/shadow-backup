@@ -12,12 +12,23 @@ namespace Back_It_Up.Views.Pages
     {
         public DashboardViewModel ViewModel { get; }
 
-        public DashboardPage(DashboardViewModel viewModel)
+        public DashboardPage(
+            DashboardViewModel viewModel,
+            INavigationService navigationService,
+            IServiceProvider serviceProvider,
+            IContentDialogService contentDialogService
+            )
         {
+
             ViewModel = viewModel;
             DataContext = this;
 
             InitializeComponent();
+
+            navigationService.SetNavigationControl(TopNavigationView);
+            contentDialogService.SetContentPresenter(MainContentDialog);
+            //TopNavigationView.SetServiceProvider(serviceProvider);
+
         }
     }
 }

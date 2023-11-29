@@ -6,6 +6,7 @@
 using Alphaleonis.Win32.Filesystem;
 using Back_It_Up.Models;
 using Back_It_Up.ViewModels.Windows;
+using Back_It_Up.Views.Pages;
 using Back_It_Up.Views.Windows;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
@@ -18,12 +19,15 @@ namespace Back_It_Up.ViewModels.Pages
     {
 
         public ICommand OpenSourceExplorerCommand { get; set; }
+        private readonly INavigationService _navigationService;
+
         public ICommand PerformBackupCommand { get; set; }
 
         private string[] _breadcrumbBarItems = new string[] { "Source & Destination", "Method & Cleaning", "Scheduling", "Encryption" };
 
-        public BackupViewModel()
+        public BackupViewModel(INavigationService navigationService)
         {
+            _navigationService = navigationService;
             this.OpenSourceExplorerCommand = new RelayCommand(OpenSourceExplorer);
             this.PerformBackupCommand = new RelayCommand(PerformBackup);
         }
@@ -47,7 +51,7 @@ namespace Back_It_Up.ViewModels.Pages
 
         private void OpenSourceExplorer()
         {
-
+        _navigationService.Navigate(typeof(SettingsPage));
         }
 
     }

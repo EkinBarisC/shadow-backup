@@ -18,7 +18,7 @@
     <Grid>
         <ui:BreadcrumbBar x:Name="BreadcrumbBar" ItemsSource="{Binding ViewModel.BreadcrumbBarItems}" VerticalAlignment="Top" />
 
-        <Button Content="Select Source" Command="{Binding ViewModel.OpenSourceExplorerCommand}" />
+        <Button Content="Select Source" Command="{Binding ViewModel.PerformBackupCommand}" />
 
         <ContentPresenter x:Name="InnerContentDialog" Grid.Row="0" />
     </Grid>

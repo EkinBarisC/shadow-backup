@@ -8,8 +8,10 @@ using Alphaleonis.Win32.Vss;
 using Back_It_Up.Models;
 using Back_It_Up.ViewModels.Windows;
 using Back_It_Up.Views.Pages;
+using Back_It_Up.Views.UserControls;
 using Back_It_Up.Views.Windows;
 using System.Collections.ObjectModel;
+using System.Windows.Controls;
 using System.Windows.Input;
 using Wpf.Ui.Common;
 using Wpf.Ui.Controls;
@@ -22,8 +24,31 @@ namespace Back_It_Up.ViewModels.Pages
         public ICommand OpenSourceExplorerCommand { get; set; }
         private readonly INavigationService _navigationService;
 
+
         public ICommand PerformBackupCommand { get; set; }
         public ObservableCollection<string> BreadcrumbBarItems { get; private set; }
+
+            private OptionsControl _optionsControl;
+
+        public OptionsControl OptionsControl
+        {
+            get
+            {
+                if (_optionsControl == null)
+                    _optionsControl = new OptionsControl();
+                return _optionsControl;
+            }
+        }
+        private UserControl _currentView;
+        public UserControl CurrentView
+        {
+            get { return _currentView; }
+            set
+            {
+                _currentView = value;
+                OnPropertyChanged(nameof(CurrentView));
+            }
+        }
         public BackupViewModel(INavigationService navigationService)
         {
             _navigationService = navigationService;
@@ -35,6 +60,17 @@ namespace Back_It_Up.ViewModels.Pages
         "Options",
         "Schedule",
     };
+        }
+
+        public void ChangeUserControl(string breadcrumbSelection)
+        {
+            switch (breadcrumbSelection)
+            {
+                case "Source":
+                    CurrentView = OptionsControl;
+                    break;
+                    // Add more cases as needed
+            }
         }
 
         private void PerformBackup()

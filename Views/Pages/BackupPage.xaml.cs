@@ -27,8 +27,7 @@ namespace Back_It_Up.Views.Pages
 
         public BackupPage(
             BackupViewModel viewModel,
-            IContentDialogService contentDialogService,
-            IServiceProvider serviceProvider
+            IContentDialogService contentDialogService
             )
         {
             ViewModel = viewModel;
@@ -39,6 +38,9 @@ namespace Back_It_Up.Views.Pages
             contentDialogService.SetContentPresenter(InnerContentDialog);
         }
 
-
-          }
+        private void BreadcrumbBar_ItemClicked(BreadcrumbBar sender, BreadcrumbBarItemClickedEventArgs args)
+        {
+            ViewModel.ChangeUserControl(args.Item.ToString());
+        }
+    }
 }

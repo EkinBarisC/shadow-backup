@@ -28,18 +28,8 @@ namespace Back_It_Up.ViewModels.Pages
         public ICommand PerformBackupCommand { get; set; }
         public ObservableCollection<string> BreadcrumbBarItems { get; private set; }
 
-            private OptionsControl _optionsControl;
+              private UserControl _currentView;
 
-        public OptionsControl OptionsControl
-        {
-            get
-            {
-                if (_optionsControl == null)
-                    _optionsControl = new OptionsControl();
-                return _optionsControl;
-            }
-        }
-        private UserControl _currentView;
         public UserControl CurrentView
         {
             get { return _currentView; }
@@ -54,11 +44,13 @@ namespace Back_It_Up.ViewModels.Pages
             _navigationService = navigationService;
             this.OpenSourceExplorerCommand = new RelayCommand(OpenSourceExplorer);
             this.PerformBackupCommand = new RelayCommand(PerformBackup);
+            this.CurrentView = new SourceUserControl();
             BreadcrumbBarItems = new ObservableCollection<string>
     {
         "Source",
         "Options",
         "Schedule",
+        ""
     };
         }
 
@@ -67,7 +59,13 @@ namespace Back_It_Up.ViewModels.Pages
             switch (breadcrumbSelection)
             {
                 case "Source":
-                    CurrentView = OptionsControl;
+                    CurrentView = new SourceUserControl();
+                    break;
+                case "Options":
+                    CurrentView = new OptionsUserControl();
+                    break;
+                case "Schedule":
+                    CurrentView = new ScheduleUserControl();
                     break;
                     // Add more cases as needed
             }

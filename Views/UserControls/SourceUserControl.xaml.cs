@@ -16,11 +16,11 @@ using System.Windows.Shapes;
 namespace Back_It_Up.Views.UserControls
 {
     /// <summary>
-    /// Interaction logic for OptionsControl.xaml
+    /// Interaction logic for SourceUserControl.xaml
     /// </summary>
-    public partial class OptionsControl : UserControl
+    public partial class SourceUserControl : UserControl
     {
-        public OptionsControl()
+        public SourceUserControl()
         {
             InitializeComponent();
         }

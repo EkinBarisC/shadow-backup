@@ -25,7 +25,8 @@
             <ColumnDefinition />
         </Grid.ColumnDefinitions>
 
-        <ui:BreadcrumbBar Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" x:Name="BreadcrumbBar" ItemClicked="BreadcrumbBar_ItemClicked" ItemsSource="{Binding ViewModel.BreadcrumbBarItems}" />
+        <ui:BreadcrumbBar  Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" x:Name="BreadcrumbBar" 
+            ItemClicked="BreadcrumbBar_ItemClicked" ItemsSource="{Binding ViewModel.BreadcrumbBarItems}" />
 
         <ContentPresenter x:Name="InnerContentDialog"  Content="{Binding ViewModel.CurrentView}" Grid.Row="1" />
     </Grid>

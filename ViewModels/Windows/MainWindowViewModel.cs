@@ -12,7 +12,7 @@ namespace Back_It_Up.ViewModels.Windows
     public partial class MainWindowViewModel : ObservableObject
     {
         [ObservableProperty]
-        private string _applicationTitle = "WPF UI - Back_It_Up";
+        private string _applicationTitle = "Back It Up";
 
         [ObservableProperty]
         private ObservableCollection<object> _menuItems = new()
@@ -22,14 +22,8 @@ namespace Back_It_Up.ViewModels.Windows
                 Content = "Home",
                 Icon = new SymbolIcon { Symbol = SymbolRegular.Home24 },
                 TargetPageType = typeof(Views.Pages.DashboardPage)
-            },
-            new NavigationViewItem()
-            {
-                Content = "Data",
-                Icon = new SymbolIcon { Symbol = SymbolRegular.DataHistogram24 },
-                TargetPageType = typeof(Views.Pages.DataPage)
             }
-        };
+                  };
 
         [ObservableProperty]
         private ObservableCollection<object> _footerMenuItems = new()

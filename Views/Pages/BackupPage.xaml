@@ -22,12 +22,38 @@
             <RowDefinition />
             <RowDefinition />
         </Grid.RowDefinitions>
-        
-        <ui:BreadcrumbBar x:Name="BreadcrumbBar" ItemsSource="{Binding ViewModel.BreadcrumbBarItems}" VerticalAlignment="Top" />
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition />
+            <ColumnDefinition />
+            <ColumnDefinition />
+            <ColumnDefinition />
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
 
-        <Button Grid.Row="0" Content="Select Source" Command="{Binding ViewModel.OpenSourceExplorerCommand}" />
+        <ui:BreadcrumbBar Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" x:Name="BreadcrumbBar" ItemsSource="{Binding ViewModel.BreadcrumbBarItems}" />
 
-        <Button Grid.Row="1" Content="Perform Backup" Command="{Binding ViewModel.PerformBackupCommand}" />
+        <Button Grid.Row="1" Grid.Column="1" Command="{Binding ViewModel.OpenSourceExplorerCommand}" Width="200" Height="200" >
+            <Button.Content>
+                <Grid>
+                    <TextBlock Text="Source" x:Name="SourceFileTextBlock" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Grid>
+            </Button.Content>
+        </Button>
+
+        <ui:SymbolIcon Symbol="ArrowRight20" Grid.Row="1" Grid.Column="2" />
+
+        <Button Grid.Row="1" Grid.Column="3"  Command="{Binding ViewModel.PerformBackupCommand}" Width="200" Height="200" >
+            <Button.Content>
+                <Grid>
+                    <TextBlock Text="Destination" x:Name="DestinationTextBlock" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Grid>
+            </Button.Content>
+        </Button>
+
+
+        <Button Grid.Row="2" Grid.Column="3" Content="Previous" HorizontalAlignment="Center" />
+        <Button Grid.Row="2" Grid.Column="3" Content="Next" HorizontalAlignment="Right"/>
+        <Button Grid.Row="2" Grid.Column="4" Content="Backup Now" HorizontalAlignment="Center" />
 
         <ContentPresenter x:Name="InnerContentDialog" Grid.Row="0" />
     </Grid>

@@ -23,15 +23,20 @@ namespace Back_It_Up.ViewModels.Pages
         private readonly INavigationService _navigationService;
 
         public ICommand PerformBackupCommand { get; set; }
-
-        private string[] _breadcrumbBarItems = new string[] { "Source & Destination", "Method & Cleaning", "Scheduling", "Encryption" };
-
+        public ObservableCollection<string> BreadcrumbBarItems { get; private set; }
         public BackupViewModel(INavigationService navigationService)
         {
             _navigationService = navigationService;
             this.OpenSourceExplorerCommand = new RelayCommand(OpenSourceExplorer);
             this.PerformBackupCommand = new RelayCommand(PerformBackup);
+            BreadcrumbBarItems = new ObservableCollection<string>
+    {
+        "Source",
+        "Options",
+        "Schedule",
+    };
         }
+
         private void PerformBackup()
         {
             //string source_file = @"C:\Users\ekin1\OneDrive\Documents\backup tool files\texts\text 1.txt";
@@ -66,7 +71,6 @@ namespace Back_It_Up.ViewModels.Pages
             }
 
         }
-
 
         private void OpenSourceExplorer()
         {

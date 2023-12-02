@@ -1,4 +1,5 @@
 ﻿using Back_It_Up.ViewModels.Pages;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,7 +27,8 @@ namespace Back_It_Up.Views.Pages
 
         public BackupPage(
             BackupViewModel viewModel,
-            IContentDialogService contentDialogService
+            IContentDialogService contentDialogService,
+            IServiceProvider serviceProvider
             )
         {
             ViewModel = viewModel;
@@ -36,5 +38,7 @@ namespace Back_It_Up.Views.Pages
 
             contentDialogService.SetContentPresenter(InnerContentDialog);
         }
-    }
+
+
+          }
 }

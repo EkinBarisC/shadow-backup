@@ -20,16 +20,13 @@
     <Grid>
         <ui:NavigationView
             x:Name="TopNavigationView"
-            Padding="42,0,42,0"
-            FrameMargin="0"
             IsBackButtonVisible="Collapsed"
             IsPaneToggleVisible="False"
             MenuItemsSource="{Binding ViewModel.TopMenuItems, Mode=OneWay}"
-            OpenPaneLength="310"
             PaneDisplayMode="Top"
             >
         </ui:NavigationView>
 
-        <ContentPresenter x:Name="MainContentDialog" Grid.Row="0" />
+        <ContentPresenter x:Name="MainContentDialog" />
     </Grid>
 </Page>

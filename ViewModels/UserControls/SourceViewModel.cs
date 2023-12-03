@@ -11,8 +11,10 @@ using Back_It_Up.Views.Pages;
 using Back_It_Up.Views.UserControls;
 using Back_It_Up.Views.Windows;
 using System.Collections.ObjectModel;
+using System.IO.Compression;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Xml;
 using Wpf.Ui.Common;
 using Wpf.Ui.Controls;
 
@@ -40,30 +42,65 @@ namespace Back_It_Up.ViewModels.Pages
             {
                 vss.Setup(Path.GetPathRoot(source_file));
                 string snap_path = vss.GetSnapshotPath(source_file);
-
                 // Here we use the AlphaFS library to make the copy.
-                File.Copy(snap_path, backup_path);
-                
-            }
+                //File.Copy(snap_path, backup_path);
+                string xmlPath = backup_path + ".xml";
+                //CreateXmlFile(xmlPath, source_file, snap_path);
+                string[] filesToBeZipped = { xmlPath, backup_path };
 
-            // enumerate snapshots in the system and show info about them
-            IVssFactory vssImplementation = VssFactoryProvider.Default.GetVssFactory();
-            using (IVssBackupComponents backup = vssImplementation.CreateVssBackupComponents())
-            {
-                backup.InitializeForBackup(null);
-
-                backup.SetContext(VssSnapshotContext.All);
-
-                foreach (VssSnapshotProperties prop in backup.QuerySnapshots())
+                string backupName = "mock backup";
+                string zipPath = Path.Combine(backup_root, backupName + ".zip");
+                using (ZipArchive archive = ZipFile.Open(zipPath, ZipArchiveMode.Update))
                 {
-                    System.Diagnostics.Debug.WriteLine("Snapshot ID: {0:B}", prop.SnapshotId);
-                    System.Diagnostics.Debug.WriteLine("Snapshot Set ID: {0:B}", prop.SnapshotSetId);
-                    System.Diagnostics.Debug.WriteLine("Original Volume Name: {0}", prop.OriginalVolumeName);
+                    archive.CreateEntryFromFile(source_file, Path.GetFileName(source_file), CompressionLevel.Fastest);
+                    archive.ExtractToDirectory(backup_path);
                 }
+
             }
+
 
         }
 
-  
+        private void CreateXmlFile(string xmlFilePath, string originalFilePath, string snapshotPath)
+        {
+            // Create XML document
+            XmlDocument xmlDoc = new XmlDocument();
+
+            // Create root element
+            XmlElement root = xmlDoc.CreateElement("BackupInfo");
+            xmlDoc.AppendChild(root);
+
+            // Add attributes to the XML document
+            XmlElement fileNameElement = xmlDoc.CreateElement("FileName");
+            fileNameElement.InnerText = Path.GetFileName(originalFilePath);
+            root.AppendChild(fileNameElement);
+
+            XmlElement originalPathElement = xmlDoc.CreateElement("OriginalPath");
+            originalPathElement.InnerText = originalFilePath;
+            root.AppendChild(originalPathElement);
+
+            XmlElement snapshotPathElement = xmlDoc.CreateElement("SnapshotPath");
+            snapshotPathElement.InnerText = snapshotPath;
+            root.AppendChild(snapshotPathElement);
+
+            // Add more attributes as needed (e.g., file size, timestamp, etc.)
+
+            // Save the XML document
+            xmlDoc.Save(xmlFilePath);
+        }
+
+        private void ZipFiles(string zipFilePath, string[] files)
+        {
+            // Create a zip file
+            using (ZipArchive zipArchive = ZipFile.Open(zipFilePath, ZipArchiveMode.Create))
+            {
+                foreach (string file in files)
+                {
+                    // Add each file to the zip archive
+                    zipArchive.CreateEntryFromFile(file, Path.GetFileName(file));
+                }
+            }
+        }
+
     }
 }

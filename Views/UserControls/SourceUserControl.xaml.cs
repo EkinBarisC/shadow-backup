@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Back_It_Up.ViewModels.Pages;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -20,9 +21,17 @@ namespace Back_It_Up.Views.UserControls
     /// </summary>
     public partial class SourceUserControl : UserControl
     {
-        public SourceUserControl()
+        public SourceViewModel ViewModel { get; }
+        public SourceUserControl(SourceViewModel viewModel)
         {
+            ViewModel = viewModel;
+            DataContext = this;
             InitializeComponent();
+        }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+
         }
     }
 }

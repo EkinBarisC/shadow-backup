@@ -17,6 +17,7 @@
   <ItemGroup>
     <PackageReference Include="AlphaFS" Version="2.2.6" />
     <PackageReference Include="AlphaVSS" Version="2.0.3" />
+    <PackageReference Include="MimeTypeMapOfficial" Version="1.0.17" />
     <PackageReference Include="WPF-UI" Version="3.0.0-preview.4" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.1 " />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1 " />

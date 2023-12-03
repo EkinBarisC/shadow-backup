@@ -43,7 +43,7 @@ namespace Back_It_Up.ViewModels.Pages
         {
             _navigationService = navigationService;
             this.OpenSourceExplorerCommand = new RelayCommand(OpenSourceExplorer);
-            this.CurrentView = new SourceUserControl(new SourceViewModel());
+            this.CurrentView = new SourceUserControl(new SourceViewModel(navigationService));
             BreadcrumbBarItems = new ObservableCollection<string>
     {
         "Source",
@@ -58,7 +58,7 @@ namespace Back_It_Up.ViewModels.Pages
             switch (breadcrumbSelection)
             {
                 case "Source":
-                    CurrentView = new SourceUserControl(new SourceViewModel());
+                    CurrentView = new SourceUserControl(new SourceViewModel(_navigationService));
                     break;
                 case "Options":
                     CurrentView = new OptionsUserControl();

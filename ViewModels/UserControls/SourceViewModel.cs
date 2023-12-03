@@ -12,6 +12,7 @@ using Back_It_Up.Views.UserControls;
 using Back_It_Up.Views.Windows;
 using System.Collections.ObjectModel;
 using System.IO.Compression;
+using System.Text.Json;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Xml;
@@ -23,14 +24,22 @@ namespace Back_It_Up.ViewModels.Pages
     public partial class SourceViewModel : ObservableObject
     {
 
+        public ICommand OpenSourceExplorerCommand { get; set; }
+        private readonly INavigationService _navigationService;
         public ICommand PerformBackupCommand { get; set; }
 
-              public SourceViewModel()
-        {
+              public SourceViewModel(INavigationService navigationService)
+                {
+            _navigationService = navigationService;
+            this.OpenSourceExplorerCommand = new RelayCommand(OpenSourceExplorer);
             this.PerformBackupCommand = new RelayCommand(PerformBackup);
                }
 
-      
+          private void OpenSourceExplorer()
+        {
+        _navigationService.Navigate(typeof(SourceExplorerPage));
+        }
+
         private void PerformBackup()
         {
             string source_file = @"C:\Users\ekin1\OneDrive\Documents\backup tool files\texts\text 1.txt";
@@ -53,7 +62,7 @@ namespace Back_It_Up.ViewModels.Pages
                 using (ZipArchive archive = ZipFile.Open(zipPath, ZipArchiveMode.Update))
                 {
                     archive.CreateEntryFromFile(source_file, Path.GetFileName(source_file), CompressionLevel.Fastest);
-                    archive.ExtractToDirectory(backup_path);
+                    archive.ExtractToDirectory(backup_path, true);
                 }
 
             }
@@ -61,33 +70,19 @@ namespace Back_It_Up.ViewModels.Pages
 
         }
 
-        private void CreateXmlFile(string xmlFilePath, string originalFilePath, string snapshotPath)
-        {
-            // Create XML document
-            XmlDocument xmlDoc = new XmlDocument();
+        //public void WriteBackupInfoToJson(string filePath, string path, string type)
+        //{
+        //    var backupInfo = new BackupInfo(path, type);
 
-            // Create root element
-            XmlElement root = xmlDoc.CreateElement("BackupInfo");
-            xmlDoc.AppendChild(root);
+        //    // Convert the BackupInfo object to JSON
+        //    string json = JsonSerializer.Serialize(backupInfo, new JsonSerializerOptions
+        //    {
+        //        WriteIndented = true // For pretty formatting
+        //    });
 
-            // Add attributes to the XML document
-            XmlElement fileNameElement = xmlDoc.CreateElement("FileName");
-            fileNameElement.InnerText = Path.GetFileName(originalFilePath);
-            root.AppendChild(fileNameElement);
-
-            XmlElement originalPathElement = xmlDoc.CreateElement("OriginalPath");
-            originalPathElement.InnerText = originalFilePath;
-            root.AppendChild(originalPathElement);
-
-            XmlElement snapshotPathElement = xmlDoc.CreateElement("SnapshotPath");
-            snapshotPathElement.InnerText = snapshotPath;
-            root.AppendChild(snapshotPathElement);
-
-            // Add more attributes as needed (e.g., file size, timestamp, etc.)
-
-            // Save the XML document
-            xmlDoc.Save(xmlFilePath);
-        }
+        //    // Write the JSON to a file
+        //    File.WriteAllText(filePath, json);
+        //}
 
         private void ZipFiles(string zipFilePath, string[] files)
         {

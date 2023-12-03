@@ -8,7 +8,58 @@
              d:DesignHeight="450" d:DesignWidth="800">
     <Grid>
 
-        <Button Content="this is the options control" />
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition />
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
+
+
+        <StackPanel Orientation="Vertical" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Left">
+
+            <StackPanel  Margin="0,0,0,20">
+                <RadioButton Content="Full Backup" />
+                <RadioButton Content="Incremental Backup" />
+            </StackPanel>
+
+            <StackPanel>
+                <RadioButton Content="No Scheme" />
+                <RadioButton Content="Incremental Backup Only" />
+                <RadioButton Content="Continuous Data Protection" />
+                <RadioButton Content="Create a Full Backup After Every">
+                    <RadioButton.ContentTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition />
+                                    <ColumnDefinition />
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Create a Full Backup After Every" Grid.Column="0" Grid.ColumnSpan="2" VerticalAlignment="Top" />
+                                <TextBox Margin="110,0,0,0"  Width="40"  Grid.Column="1" VerticalAlignment="Top"  />
+                                <TextBlock Margin="10,0,0,0" Text="Versions" Grid.Column="2" VerticalAlignment="Top"  />
+                            </Grid>
+                        </DataTemplate>
+                    </RadioButton.ContentTemplate>
+                </RadioButton>
+            </StackPanel>
+        </StackPanel>
+
+
+            <StackPanel Grid.Column="1">
+            <RadioButton Content="Keep All Backups" />
+            <RadioButton Content="Delete Backups Older Than" >
+                <RadioButton.ContentTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Delete Backups Older Than" />
+                            <TextBox Margin="10,0,0,0" Width="40" VerticalAlignment="Top" />
+                            <TextBlock Margin="10,0,0,0" Text="Days" VerticalAlignment="Top" />
+                        </StackPanel>
+                    </DataTemplate>
+                </RadioButton.ContentTemplate>
+            </RadioButton>
+            </StackPanel>
 
     </Grid>
 </UserControl>

@@ -17,7 +17,10 @@
     <Page.Resources>
     <HierarchicalDataTemplate x:Key="template"
                               ItemsSource="{Binding Children}">
-            <TextBlock Text="{Binding Name}" />
+            <StackPanel Orientation="Horizontal">
+            <CheckBox Grid.Column="0"  IsChecked="{Binding IsSelected}"/>
+            <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+            </StackPanel>
         </HierarchicalDataTemplate>
     </Page.Resources>
 

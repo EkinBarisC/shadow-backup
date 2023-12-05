@@ -15,11 +15,11 @@
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition />
+            <RowDefinition MaxHeight="300" />
             <RowDefinition />
         </Grid.RowDefinitions>
 
-        <TreeView Name="TreeViewSourceExplorer" Grid.Row="0" ItemsSource="{Binding ViewModel.fileSystemItems}">
+        <TreeView Name="TreeViewSourceExplorer" Grid.Row="0" ItemsSource="{Binding ViewModel.fileSystemItems}" Height="300" >
             <TreeView.ItemTemplate>
                 <HierarchicalDataTemplate ItemsSource="{Binding Children}">
                     <StackPanel Orientation="Horizontal">

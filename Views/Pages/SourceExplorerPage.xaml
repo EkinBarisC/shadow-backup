@@ -13,26 +13,26 @@
         d:DesignWidth="800"
         mc:Ignorable="d">
 
-
-    <Page.Resources>
-    <HierarchicalDataTemplate x:Key="template"
-                              ItemsSource="{Binding Children}">
-            <StackPanel Orientation="Horizontal">
-            <CheckBox Grid.Column="0"  IsChecked="{Binding IsSelected}"/>
-            <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
-            </StackPanel>
-        </HierarchicalDataTemplate>
-    </Page.Resources>
-
-
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition />
             <RowDefinition />
         </Grid.RowDefinitions>
 
-        <TreeView Name="TreeViewSourceExplorer" Grid.Row="0" ItemsSource="{Binding ViewModel.fileSystemItems}" 
-                  ItemTemplate="{StaticResource ResourceKey=template}">
+        <TreeView Name="TreeViewSourceExplorer" Grid.Row="0" ItemsSource="{Binding ViewModel.fileSystemItems}">
+            <TreeView.ItemTemplate>
+                <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                    <StackPanel Orientation="Horizontal">
+                        <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}" />
+                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Foreground="White" />
+                    </StackPanel>
+                </HierarchicalDataTemplate>
+            </TreeView.ItemTemplate>
+            <TreeView.ItemContainerStyle>
+                <Style TargetType="TreeViewItem">
+                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                </Style>
+            </TreeView.ItemContainerStyle>
         </TreeView>
 
         <Button  Grid.Row="1" Content="Select"  />

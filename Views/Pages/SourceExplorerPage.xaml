@@ -6,6 +6,7 @@
       xmlns:local="clr-namespace:Back_It_Up.Views.Pages"
       xmlns:local2="clr-namespace:Back_It_Up.Models"
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
       Title="SourceExplorerPage"
         d:DataContext="{d:DesignInstance local:SourceExplorerPage,
                              IsDesignTimeCreatable=False}"
@@ -23,7 +24,16 @@
             <TreeView.ItemTemplate>
                 <HierarchicalDataTemplate ItemsSource="{Binding Children}">
                     <StackPanel Orientation="Horizontal">
-                        <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}" />
+                        <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}">
+                            <i:Interaction.Triggers>
+                                <i:EventTrigger EventName="Checked">
+                                    <i:InvokeCommandAction Command="{Binding ViewModel.CheckBoxCheckedCommand, RelativeSource={RelativeSource AncestorType={x:Type local:SourceExplorerPage}} }" CommandParameter="{Binding}" />
+                                </i:EventTrigger>
+                                <i:EventTrigger EventName="Unchecked">
+                                    <i:InvokeCommandAction Command="{Binding ViewModel.CheckBoxUncheckedCommand, RelativeSource={RelativeSource AncestorType={x:Type local:SourceExplorerPage}} }" CommandParameter="{Binding}" />
+                                </i:EventTrigger>
+                            </i:Interaction.Triggers>
+                        </CheckBox>
                         <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Foreground="White" />
                     </StackPanel>
                 </HierarchicalDataTemplate>

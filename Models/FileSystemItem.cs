@@ -7,6 +7,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MimeTypes;
+using Back_It_Up.Stores;
+using System.Windows.Controls;
 
 namespace Back_It_Up.Models
 {
@@ -113,6 +115,25 @@ namespace Back_It_Up.Models
         public FileSystemItem()
         {
             Children = new ObservableCollection<FileSystemItem>();
+        }
+
+        public void CheckBox_Checked()
+        {
+            this.IsExpanded = true;
+
+            if (this.Parent != null && this.Parent.IsSelected == false)
+            {
+                BackupStore store = App.GetService<BackupStore>();
+                store.selectedBackup.BackupItems.Add(this);
+            }
+        }
+
+        public void CheckBox_Unchecked()
+        {
+            this.SetIsSelectedRecursively(false);
+
+            BackupStore store = App.GetService<BackupStore>();
+            store.selectedBackup.BackupItems.Remove(this);
         }
 
         public void SetIsSelectedRecursively(bool isSelected)

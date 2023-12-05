@@ -5,6 +5,7 @@
 
 using Alphaleonis.Win32.Filesystem;
 using Back_It_Up.Models;
+using Back_It_Up.Stores;
 using Back_It_Up.Views.Pages;
 using Back_It_Up.Views.UserControls;
 using MimeTypes;
@@ -22,13 +23,19 @@ namespace Back_It_Up.ViewModels.Pages
         public ObservableCollection<FileSystemItem> fileSystemItems {  get; set; }
 
         public ICommand ReturnToSourcePageCommand { get; set; }
-        
+        public ICommand CheckBoxCheckedCommand { get; set; }
+        public ICommand CheckBoxUncheckedCommand { get; set; }
+
         private readonly INavigationService _navigationService;
 
         public SourceExplorerViewModel(INavigationService navigationService)
         {
             _navigationService = navigationService;
+
             this.ReturnToSourcePageCommand = new RelayCommand(ReturnToSourcePage);
+            this.CheckBoxCheckedCommand = new CommunityToolkit.Mvvm.Input.RelayCommand<FileSystemItem>(CheckBox_Checked);
+            this.CheckBoxUncheckedCommand = new CommunityToolkit.Mvvm.Input.RelayCommand<FileSystemItem>(CheckBox_Unchecked);
+
             fileSystemItems = new ObservableCollection<FileSystemItem>();
             LoadFileSystemItems("C:\\Users\\ekin1\\OneDrive\\Documents"); 
         }
@@ -75,30 +82,29 @@ namespace Back_It_Up.ViewModels.Pages
         }
 
 
-        private void CheckBox_Checked(object sender, RoutedEventArgs e)
+        public void CheckBox_Checked(FileSystemItem dataItem)
         {
-            var checkBox = (CheckBox)sender;
-            var dataItem = (FileSystemItem)checkBox.DataContext; 
             dataItem.IsExpanded = true;
 
-            //if (dataItem.Parent != null && dataItem.Parent.IsSelected == false)
-                
-                //App.store.selectedBackup.BackupItems.Add(dataItem);
+            BackupStore store = App.GetService<BackupStore>();
+            if (dataItem.Parent != null && dataItem.Parent.IsSelected == false)
+            {
+                store.selectedBackup.BackupItems.Add(dataItem);
+            }
         }
 
-        private void CheckBox_Unchecked(object sender, RoutedEventArgs e)
+        public void CheckBox_Unchecked(FileSystemItem dataItem)
         {
-            var checkBox = (CheckBox)sender;
-            var dataItem = (FileSystemItem)checkBox.DataContext; 
-
             dataItem.SetIsSelectedRecursively(false);
 
-            //App.store.selectedBackup.BackupItems.Remove(dataItem);
+            BackupStore store = App.GetService<BackupStore>();
+            store.selectedBackup.BackupItems.Remove(dataItem);
         }
 
         private void ReturnToSourcePage()
         {
-            Console.WriteLine("ekin");
+
+            BackupStore store = App.GetService<BackupStore>();
             _navigationService.Navigate(typeof(BackupPage));
         }
     }

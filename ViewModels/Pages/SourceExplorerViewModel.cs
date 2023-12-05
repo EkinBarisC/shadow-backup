@@ -5,6 +5,8 @@
 
 using Alphaleonis.Win32.Filesystem;
 using Back_It_Up.Models;
+using Back_It_Up.Views.Pages;
+using Back_It_Up.Views.UserControls;
 using MimeTypes;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -19,14 +21,16 @@ namespace Back_It_Up.ViewModels.Pages
     {
         public ObservableCollection<FileSystemItem> fileSystemItems {  get; set; }
 
-        public SourceExplorerViewModel()
+        public ICommand ReturnToSourcePageCommand { get; set; }
+        
+        private readonly INavigationService _navigationService;
+
+        public SourceExplorerViewModel(INavigationService navigationService)
         {
-
-            // Initialize the file system items (you should customize this part)
+            _navigationService = navigationService;
+            this.ReturnToSourcePageCommand = new RelayCommand(ReturnToSourcePage);
             fileSystemItems = new ObservableCollection<FileSystemItem>();
-            LoadFileSystemItems("C:\\Users\\ekin1\\OneDrive\\Documents"); // Load the root directory
-            //TreeViewSourceExplorer.ItemsSource = fileSystemItems;
-
+            LoadFileSystemItems("C:\\Users\\ekin1\\OneDrive\\Documents"); 
         }
 
         private void LoadFileSystemItems(string path)
@@ -50,7 +54,7 @@ namespace Back_It_Up.ViewModels.Pages
                     }
                     catch (UnauthorizedAccessException)
                     {
-                        return null; // Exclude folders with admin access issues
+                        return null; 
                     }
                 }).Where(item => item != null);
 
@@ -59,7 +63,6 @@ namespace Back_It_Up.ViewModels.Pages
                 {
                     fileSystemItems.Add(item);
 
-                    // If it's a folder, load its immediate subitems
                     if (item.IsFolder)
                     {
                         item.AddDummyChild();
@@ -68,16 +71,14 @@ namespace Back_It_Up.ViewModels.Pages
             }
             catch (UnauthorizedAccessException)
             {
-                // Handle access issues at the root directory level
             }
         }
 
 
         private void CheckBox_Checked(object sender, RoutedEventArgs e)
         {
-            // Get the data item associated with this CheckBox
             var checkBox = (CheckBox)sender;
-            var dataItem = (FileSystemItem)checkBox.DataContext; // Ensure your DataContext is correctly set
+            var dataItem = (FileSystemItem)checkBox.DataContext; 
             dataItem.IsExpanded = true;
 
             //if (dataItem.Parent != null && dataItem.Parent.IsSelected == false)
@@ -87,29 +88,18 @@ namespace Back_It_Up.ViewModels.Pages
 
         private void CheckBox_Unchecked(object sender, RoutedEventArgs e)
         {
-            // Get the data item associated with this CheckBox
             var checkBox = (CheckBox)sender;
-            var dataItem = (FileSystemItem)checkBox.DataContext; // Ensure your DataContext is correctly set
+            var dataItem = (FileSystemItem)checkBox.DataContext; 
 
-            // Update the IsSelected property
             dataItem.SetIsSelectedRecursively(false);
 
             //App.store.selectedBackup.BackupItems.Remove(dataItem);
         }
 
-        
-        //public ICommand OpenSourceExplorerCommand { get; set; }
-
-        //private string[] _breadcrumbBarItems = new string[] { "Source & Destination", "Method & Cleaning", "Scheduling", "Encryption" };
-
-        //public SourceExplorerViewModel()
-        //{
-        //    this.OpenSourceExplorerCommand = new RelayCommand(OpenSourceExplorer);
-        //}
-
-        //private void OpenSourceExplorer()
-        //{
-        //    Console.WriteLine("ekin");
-        //}
+        private void ReturnToSourcePage()
+        {
+            Console.WriteLine("ekin");
+            _navigationService.Navigate(typeof(BackupPage));
+        }
     }
 }

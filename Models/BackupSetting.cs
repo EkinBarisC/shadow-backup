@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Back_It_Up.Models
 {
-    class BackupItemSetting
+    class BackupSetting
     {
         public string SelectedBackupMethod { get; set; }
         public string SelectedBackupScheme { get; set; }

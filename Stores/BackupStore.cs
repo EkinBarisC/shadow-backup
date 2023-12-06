@@ -13,7 +13,7 @@ namespace Back_It_Up.Stores
 {
     class BackupStore
     {
-        public BackupItem selectedBackup = new BackupItem();
+        public Backup selectedBackup = new Backup();
 
     }
 }

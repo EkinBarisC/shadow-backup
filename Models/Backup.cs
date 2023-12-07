@@ -17,7 +17,7 @@ namespace Back_It_Up.Models
     {
         //TODO: remove defaults
         public ObservableCollection<FileSystemItem> BackupItems = new ObservableCollection<FileSystemItem>();
-        public string DestinationPath = "C:\\Users\\ekin1\\OneDrive\\Documents\\backup tool files\\backups";
+        public string DestinationPath = "C:\\Users\\User\\Documents";
         public BackupSetting BackupSetting = new BackupSetting();
         public string BackupName = "mock backup";
         //public string RestorePath;
@@ -67,55 +67,30 @@ namespace Back_It_Up.Models
 
         public void PerformFullBackup()
         {
-       
+
             foreach (FileSystemItem backupItem in BackupItems)
             {
-                if (backupItem.IsFolder)
-                {
-                    // Perform backup for folder
-                    BackupFolder(backupItem.Path, DestinationPath);
-                }
-                else
-                {
-                    // Perform backup for file
-                    BackupFile(backupItem.Path, DestinationPath);
-                }
-            }
-
-          
-        }
-
-        private void BackupFolder(string sourceFolder, string destinationFolder)
-        {
-            try
-            {
+                string source = backupItem.Path;
                 // Initialize the shadow copy subsystem.
                 using (VssBackup vss = new VssBackup())
                 {
-                    vss.Setup(Path.GetPathRoot(sourceFolder));
-                    string snap_path = vss.GetSnapshotPath(sourceFolder);
+                    vss.Setup(Path.GetPathRoot(source));
+                    string snap_path = vss.GetSnapshotPath(source);
                     // Here we use the AlphaFS library to make the copy.
-                    string destinationPath = Path.Combine(destinationFolder, Path.GetFileName(sourceFolder));
-                    Directory.Copy(snap_path, destinationPath);
+                    string destinationPath = Path.Combine(DestinationPath, Path.GetFileName(source));
+                    if (backupItem.IsFolder)
+                    {
+                        Directory.Copy(snap_path, destinationPath);
+                    }
+                    else
+                    {
+                        File.Copy(snap_path, destinationPath);
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
 
             }
-        }
 
-        private void BackupFile(string sourceFile, string destinationFolder)
-        {
-                // Initialize the shadow copy subsystem.
-                using (VssBackup vss = new VssBackup())
-                {
-                    vss.Setup(Path.GetPathRoot(sourceFile));
-                    string snap_path = vss.GetSnapshotPath(sourceFile);
-                    // Here we use the AlphaFS library to make the copy.
-                    string destinationPath = Path.Combine(destinationFolder, Path.GetFileName(sourceFile));
-                    File.Copy(snap_path, destinationPath);
-                }
+
         }
 
 
@@ -123,15 +98,3 @@ namespace Back_It_Up.Models
     }
 }
 
-            //string source_file = @"C:\Users\ekin1\OneDrive\Documents\backup tool files\texts\text 1.txt";
-            //string backup_root = @"C:\Users\ekin1\OneDrive\Documents\backup tool files\backups";
-            //string backup_path = Path.Combine(backup_root, Path.GetFileName(source_file));
-
-//string[] filesToBeZipped = { xmlPath, backup_path };
-
-//string zipPath = Path.Combine(backup_root, backupName + ".zip");
-//using (ZipArchive archive = ZipFile.Open(zipPath, ZipArchiveMode.Update))
-//{
-//    archive.CreateEntryFromFile(source_file, Path.GetFileName(source_file), CompressionLevel.Fastest);
-//    archive.ExtractToDirectory(backup_path, true);
-//}

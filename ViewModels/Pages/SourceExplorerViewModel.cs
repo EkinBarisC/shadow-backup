@@ -20,7 +20,7 @@ namespace Back_It_Up.ViewModels.Pages
 {
     public partial class SourceExplorerViewModel : ObservableObject
     {
-        public ObservableCollection<FileSystemItem> fileSystemItems {  get; set; }
+        public ObservableCollection<FileSystemItem> fileSystemItems { get; set; }
 
         public ICommand ReturnToSourcePageCommand { get; set; }
         public ICommand CheckBoxCheckedCommand { get; set; }
@@ -37,7 +37,7 @@ namespace Back_It_Up.ViewModels.Pages
             this.CheckBoxUncheckedCommand = new CommunityToolkit.Mvvm.Input.RelayCommand<FileSystemItem>(CheckBox_Unchecked);
 
             fileSystemItems = new ObservableCollection<FileSystemItem>();
-            LoadFileSystemItems("C:\\Users\\ekin1\\OneDrive\\Documents"); 
+            LoadFileSystemItems("C:\\Users\\User\\Downloads");
         }
 
         private void LoadFileSystemItems(string path)
@@ -61,7 +61,7 @@ namespace Back_It_Up.ViewModels.Pages
                     }
                     catch (UnauthorizedAccessException)
                     {
-                        return null; 
+                        return null;
                     }
                 }).Where(item => item != null);
 
@@ -87,10 +87,8 @@ namespace Back_It_Up.ViewModels.Pages
             dataItem.IsExpanded = true;
 
             BackupStore store = App.GetService<BackupStore>();
-            if (dataItem.Parent != null && dataItem.Parent.IsSelected == false)
-            {
-                store.selectedBackup.BackupItems.Add(dataItem);
-            }
+
+            store.selectedBackup.BackupItems.Add(dataItem);
         }
 
         public void CheckBox_Unchecked(FileSystemItem dataItem)

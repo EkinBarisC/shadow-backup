@@ -27,10 +27,10 @@
                         <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}">
                             <i:Interaction.Triggers>
                                 <i:EventTrigger EventName="Checked">
-                                    <i:InvokeCommandAction Command="{Binding ViewModel.CheckBoxCheckedCommand, RelativeSource={RelativeSource AncestorType={x:Type local:SourceExplorerPage}} }" CommandParameter="{Binding}" />
+                                    <i:InvokeCommandAction Command="{Binding ViewModel.CheckBoxCheckedCommand, RelativeSource={RelativeSource AncestorType={x:Type local:DestinationExplorerPage}} }" CommandParameter="{Binding}" />
                                 </i:EventTrigger>
                                 <i:EventTrigger EventName="Unchecked">
-                                    <i:InvokeCommandAction Command="{Binding ViewModel.CheckBoxUncheckedCommand, RelativeSource={RelativeSource AncestorType={x:Type local:SourceExplorerPage}} }" CommandParameter="{Binding}" />
+                                    <i:InvokeCommandAction Command="{Binding ViewModel.CheckBoxUncheckedCommand, RelativeSource={RelativeSource AncestorType={x:Type local:DestinationExplorerPage}} }" CommandParameter="{Binding}" />
                                 </i:EventTrigger>
                             </i:Interaction.Triggers>
                         </CheckBox>

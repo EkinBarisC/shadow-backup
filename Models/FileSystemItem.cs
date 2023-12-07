@@ -12,15 +12,13 @@ using System.Windows.Controls;
 
 namespace Back_It_Up.Models
 {
-    public class FileSystemItem
+    public partial class FileSystemItem : ObservableObject
     {
-        public event PropertyChangedEventHandler PropertyChanged;
 
         public string Path { get; set; }
         public string Name { get; set; }
         public bool IsFolder { get; set; }
         public string FileType { get; set; }
-
 
 
         private bool isExpanded = false;
@@ -32,7 +30,6 @@ namespace Back_It_Up.Models
                 if (isExpanded != value)
                 {
                     isExpanded = value;
-                    OnPropertyChanged(nameof(IsExpanded));
 
                     if (isExpanded && IsFolder && !contentsLoaded)
                     {
@@ -55,17 +52,10 @@ namespace Back_It_Up.Models
         private bool isSelected;
         public bool IsSelected
         {
-            get { return isSelected; }
-            set
-            {
-                if (isSelected != value)
-                {
-                    isSelected = value;
-                    OnPropertyChanged(nameof(IsSelected));
-                    if (IsFolder) SetIsSelectedRecursively(value);
-                }
-            }
+            get => isSelected;
+            set => SetProperty(ref isSelected, value);
         }
+
         public bool contentsLoaded = false;
         private long fileSizeInBytes;
         public long FileSizeInBytes
@@ -76,7 +66,6 @@ namespace Back_It_Up.Models
                 if (fileSizeInBytes != value)
                 {
                     fileSizeInBytes = value;
-                    OnPropertyChanged(nameof(FileSizeInBytes));
                 }
             }
         }
@@ -102,11 +91,11 @@ namespace Back_It_Up.Models
 
         public void AddDummyChild()
         {
-            if (IsFolder && Children.Count == 0) 
+            if (IsFolder && Children.Count == 0)
             {
                 FileSystemItem dummy = new FileSystemItem();
                 dummy.isDummy = true;
-                Children.Add(dummy); 
+                Children.Add(dummy);
             }
         }
 
@@ -145,14 +134,9 @@ namespace Back_It_Up.Models
             }
         }
 
-        private void OnPropertyChanged(string propertyName)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
         public void LoadContents()
         {
-            if (IsFolder && !contentsLoaded) 
+            if (IsFolder && !contentsLoaded)
             {
 
                 try
@@ -174,7 +158,7 @@ namespace Back_It_Up.Models
                         }
                         catch (UnauthorizedAccessException)
                         {
-                            return null; 
+                            return null;
                         }
                     }).Where(item => item != null);
 
@@ -193,7 +177,7 @@ namespace Back_It_Up.Models
                 }
                 catch (UnauthorizedAccessException)
                 {
-                    
+
                 }
             }
         }

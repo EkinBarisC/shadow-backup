@@ -86,9 +86,16 @@ namespace Back_It_Up.ViewModels.Pages
         {
             dataItem.IsExpanded = true;
 
+            foreach (var item in fileSystemItems)
+            {
+                if (item != dataItem)
+                {
+                    item.IsSelected = false;
+                }
+            }
             BackupStore store = App.GetService<BackupStore>();
 
-            store.selectedBackup.BackupItems.Add(dataItem);
+            store.selectedBackup.DestinationPath = dataItem.Path;
         }
 
         public void CheckBox_Unchecked(FileSystemItem dataItem)
@@ -96,7 +103,10 @@ namespace Back_It_Up.ViewModels.Pages
             dataItem.SetIsSelectedRecursively(false);
 
             BackupStore store = App.GetService<BackupStore>();
-            store.selectedBackup.BackupItems.Remove(dataItem);
+            if (store.selectedBackup.DestinationPath == dataItem.Path)
+            {
+                store.selectedBackup.DestinationPath = null;
+            }
         }
 
         private void ReturnToSourcePage()

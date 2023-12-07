@@ -26,19 +26,25 @@ namespace Back_It_Up.ViewModels.Pages
     {
 
         public ICommand OpenSourceExplorerCommand { get; set; }
+        public ICommand OpenDestinationExplorerCommand { get; set; }
         private readonly INavigationService _navigationService;
         public ICommand PerformBackupCommand { get; set; }
 
-              public SourceViewModel(INavigationService navigationService)
-                {
+        public SourceViewModel(INavigationService navigationService)
+        {
             _navigationService = navigationService;
             this.OpenSourceExplorerCommand = new RelayCommand(OpenSourceExplorer);
+            this.OpenDestinationExplorerCommand = new RelayCommand(OpenDestinationExplorer);
             this.PerformBackupCommand = new RelayCommand(PerformBackup);
-               }
+        }
 
-          private void OpenSourceExplorer()
+        private void OpenSourceExplorer()
         {
-        _navigationService.Navigate(typeof(SourceExplorerPage));
+            _navigationService.Navigate(typeof(SourceExplorerPage));
+        }
+        private void OpenDestinationExplorer()
+        {
+            _navigationService.Navigate(typeof(DestinationExplorerPage));
         }
 
         private void PerformBackup()
@@ -47,7 +53,7 @@ namespace Back_It_Up.ViewModels.Pages
             //store.selectedBackup.PrepareMetadata();
             store.selectedBackup.PerformFullBackup();
 
-          
+
         }
 
 

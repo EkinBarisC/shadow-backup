@@ -142,15 +142,22 @@ namespace Back_It_Up.Models
         public void CreateZipArchive()
         {
             string zipPath = Path.Combine(DestinationPath, BackupName + ".zip");
-            using (ZipArchive archive = ZipFile.Open(zipPath, ZipArchiveMode.Update))
+            string sourcePath = Path.Combine(DestinationPath, BackupName);
+            ZipFile.CreateFromDirectory(sourcePath, zipPath, CompressionLevel.Fastest, true);
+            using KernelTransaction kernelTransaction = new KernelTransaction();
             {
-                foreach (FileSystemItem backupItem in BackupItems)
+                try
                 {
-                    string source = Path.Combine(DestinationPath, backupItem.Name);
-                    archive.CreateEntryFromFile(source, zipPath, CompressionLevel.Fastest);
-                    ZipFile.CreateFromDirectory
+                    if (Directory.ExistsTransacted(kernelTransaction, sourcePath))
+                    {
+                        Directory.DeleteTransacted(kernelTransaction, sourcePath, true);
+                        kernelTransaction.Commit();
+                    }
                 }
-
+                catch (Exception)
+                {
+                    kernelTransaction.Rollback();
+                }
             }
         }
 

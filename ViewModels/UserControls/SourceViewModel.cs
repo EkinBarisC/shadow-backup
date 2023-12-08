@@ -50,10 +50,7 @@ namespace Back_It_Up.ViewModels.Pages
         private void PerformBackup()
         {
             BackupStore store = App.GetService<BackupStore>();
-            //store.selectedBackup.PrepareMetadata();
-            store.selectedBackup.PerformFullBackup();
-
-
+            store.selectedBackup.PerformBackup();
         }
 
 

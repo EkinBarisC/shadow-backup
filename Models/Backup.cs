@@ -10,6 +10,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Transactions;
 
 namespace Back_It_Up.Models
 {
@@ -22,7 +23,14 @@ namespace Back_It_Up.Models
         public string BackupName = "mock backup";
         //public string RestorePath;
 
-        public void PrepareMetadata()
+        public void PerformBackup()
+        {
+            //CreateMetadata();
+            //PerformFullBackup();
+            CreateZipArchive();
+        }
+
+        public async void CreateMetadata()
         {
             List<object> metadataList = new List<object>();
 
@@ -44,8 +52,26 @@ namespace Back_It_Up.Models
             {
                 WriteIndented = true
             });
-            string metadataFilePath = Path.Combine(DestinationPath, BackupName + "_metadata.json");
-            File.WriteAllText(metadataFilePath, metadataJson);
+
+            using KernelTransaction kernelTransaction = new KernelTransaction();
+            {
+                try
+                {
+                    await Task.Run(() =>
+                    {
+                        string backupNameFolderPath = Path.Combine(DestinationPath, BackupName);
+                        string metadataFilePath = Path.Combine(backupNameFolderPath, BackupName + "_metadata.json");
+                        Directory.CreateDirectoryTransacted(kernelTransaction, backupNameFolderPath);
+                        File.WriteAllTextTransacted(kernelTransaction, metadataFilePath, metadataJson);
+
+                        kernelTransaction.Commit();
+                    });
+                }
+                catch (Exception)
+                {
+                    kernelTransaction.Rollback();
+                }
+            }
         }
 
         private void TraverseBackupItems(IEnumerable<FileSystemItem> items, List<object> metadataList)
@@ -65,7 +91,7 @@ namespace Back_It_Up.Models
             }
         }
 
-        public void PerformFullBackup()
+        public async void FullBackup()
         {
 
             foreach (FileSystemItem backupItem in BackupItems)
@@ -76,23 +102,57 @@ namespace Back_It_Up.Models
                 {
                     vss.Setup(Path.GetPathRoot(source));
                     string snap_path = vss.GetSnapshotPath(source);
-                    // Here we use the AlphaFS library to make the copy.
-                    string destinationPath = Path.Combine(DestinationPath, Path.GetFileName(source));
-                    if (backupItem.IsFolder)
+                    string backupNameFolderPath = Path.Combine(DestinationPath, BackupName);
+                    string destinationPath = Path.Combine(backupNameFolderPath, Path.GetFileName(source));
+
+                    using KernelTransaction kernelTransaction = new KernelTransaction();
                     {
-                        Directory.Copy(snap_path, destinationPath);
+                        try
+                        {
+                            await Task.Run(() =>
+                            {
+                                Directory.CreateDirectoryTransacted(kernelTransaction, backupNameFolderPath);
+
+                                if (backupItem.IsFolder)
+                                {
+                                    //Directory.Copy(snap_path, destinationPath);
+                                    Directory.CopyTransacted(kernelTransaction, snap_path, destinationPath);
+                                }
+                                else
+                                {
+                                    //File.Copy(snap_path, destinationPath);
+                                    File.CopyTransacted(kernelTransaction, snap_path, destinationPath);
+                                }
+
+
+                                kernelTransaction.Commit();
+                            });
+                        }
+                        catch (Exception)
+                        {
+                            kernelTransaction.Rollback();
+                        }
                     }
-                    else
-                    {
-                        File.Copy(snap_path, destinationPath);
-                    }
+
                 }
 
             }
-
-
         }
 
+        public void CreateZipArchive()
+        {
+            string zipPath = Path.Combine(DestinationPath, BackupName + ".zip");
+            using (ZipArchive archive = ZipFile.Open(zipPath, ZipArchiveMode.Update))
+            {
+                foreach (FileSystemItem backupItem in BackupItems)
+                {
+                    string source = Path.Combine(DestinationPath, backupItem.Name);
+                    archive.CreateEntryFromFile(source, zipPath, CompressionLevel.Fastest);
+                    ZipFile.CreateFromDirectory
+                }
+
+            }
+        }
 
 
     }

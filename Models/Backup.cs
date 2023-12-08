@@ -23,14 +23,15 @@ namespace Back_It_Up.Models
         public string BackupName = "mock backup";
         //public string RestorePath;
 
-        public void PerformBackup()
+        public async void PerformBackup()
         {
-            //CreateMetadata();
-            //PerformFullBackup();
-            CreateZipArchive();
+            await CreateMetadata();
+            await FullBackup();
+            await CreateZipArchive();
+            await WriteBackupLocation();
         }
 
-        public async void CreateMetadata()
+        public async Task CreateMetadata()
         {
             List<object> metadataList = new List<object>();
 
@@ -91,7 +92,7 @@ namespace Back_It_Up.Models
             }
         }
 
-        public async void FullBackup()
+        public async Task FullBackup()
         {
 
             foreach (FileSystemItem backupItem in BackupItems)
@@ -139,7 +140,7 @@ namespace Back_It_Up.Models
             }
         }
 
-        public void CreateZipArchive()
+        public async Task CreateZipArchive()
         {
             string zipPath = Path.Combine(DestinationPath, BackupName + ".zip");
             string sourcePath = Path.Combine(DestinationPath, BackupName);
@@ -148,11 +149,49 @@ namespace Back_It_Up.Models
             {
                 try
                 {
-                    if (Directory.ExistsTransacted(kernelTransaction, sourcePath))
+                    await Task.Run(() =>
                     {
-                        Directory.DeleteTransacted(kernelTransaction, sourcePath, true);
+                        if (Directory.ExistsTransacted(kernelTransaction, sourcePath))
+                        {
+                            Directory.DeleteTransacted(kernelTransaction, sourcePath, true);
+                            kernelTransaction.Commit();
+                        }
+                    });
+                }
+                catch (Exception)
+                {
+                    kernelTransaction.Rollback();
+                }
+            }
+        }
+
+
+        public async Task WriteBackupLocation()
+        {
+            using KernelTransaction kernelTransaction = new KernelTransaction();
+            {
+                try
+                {
+                    await Task.Run(() =>
+                    {
+                        string zipPath = Path.Combine(DestinationPath, BackupName + ".zip");
+                        string appDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BackItUp");
+                        string destinationFilePath = Path.Combine(appDataFolder, "backup_locations.txt");
+
+                        Directory.CreateDirectoryTransacted(kernelTransaction, appDataFolder);
+                        Directory.CreateDirectoryTransacted(kernelTransaction, Path.GetDirectoryName(destinationFilePath));
+
+                        if (!File.ExistsTransacted(kernelTransaction, destinationFilePath))
+                        {
+                            File.WriteAllTextTransacted(kernelTransaction, destinationFilePath, zipPath);
+                        }
+                        else
+                        {
+                            File.AppendAllTextTransacted(kernelTransaction, destinationFilePath, Environment.NewLine + zipPath);
+                        }
+
                         kernelTransaction.Commit();
-                    }
+                    });
                 }
                 catch (Exception)
                 {

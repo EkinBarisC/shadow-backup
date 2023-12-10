@@ -6,9 +6,14 @@
 using Alphaleonis.Win32.Filesystem;
 using Back_It_Up.Models;
 using Back_It_Up.Stores;
+using System.IO.Compression;
+using System.IO;
+using System.Text;
 using System.Text.Json;
 using System.Windows.Input;
 using Wpf.Ui.Controls;
+using File = Alphaleonis.Win32.Filesystem.File;
+using Path = Alphaleonis.Win32.Filesystem.Path;
 
 namespace Back_It_Up.ViewModels.Pages
 {
@@ -24,10 +29,45 @@ namespace Back_It_Up.ViewModels.Pages
             readManifestFile();
         }
 
-        private void LoadContents(BackupVersion obj)
+        private async void LoadContents(BackupVersion backupVersion)
         {
-            Console.WriteLine("ekin");
+
+            string zipFilePath = backupVersion.BackupZipFilePath;
+            string metadata = await ReadMetadataFromZip(zipFilePath);
+
+
         }
+
+        public async Task<string> ReadMetadataFromZip(string zipFilePath)
+        {
+            // Ensure the file exists
+            if (!File.Exists(zipFilePath))
+            {
+                throw new FileNotFoundException("ZIP file not found.", zipFilePath);
+            }
+
+            // Open the ZIP file
+            using (var zipArchive = ZipFile.OpenRead(zipFilePath))
+            {
+                // Find the metadata file
+                var metadataEntry = zipArchive.GetEntry("metadata.json");
+                if (metadataEntry == null)
+                {
+                    throw new FileNotFoundException("Metadata file not found in the ZIP archive.", "metadata.json");
+                }
+
+                // Read the metadata file
+                using (var stream = metadataEntry.Open())
+                {
+                    using (var memoryStream = new MemoryStream())
+                    {
+                        await stream.CopyToAsync(memoryStream);
+                        return Encoding.UTF8.GetString(memoryStream.ToArray());
+                    }
+                }
+            }
+        }
+
 
         public void readManifestFile()
         {

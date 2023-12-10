@@ -22,7 +22,8 @@
             <ColumnDefinition />
         </Grid.ColumnDefinitions>
 
-        <ui:DataGrid x:Name="VersionsDataGrid" ItemsSource="{Binding ViewModel.BackupVersions, Mode=TwoWay}" AutoGenerateColumns="False" Grid.Column="0"  >
+        <ui:DataGrid x:Name="VersionsDataGrid" ItemsSource="{Binding ViewModel.BackupVersions, Mode=TwoWay}"
+                     AutoGenerateColumns="False" Grid.Column="0" IsReadOnly="True" >
             <i:Interaction.Triggers>
                 <i:EventTrigger EventName="MouseDoubleClick">
                     <i:InvokeCommandAction Command="{Binding ViewModel.LoadContentsCommand, RelativeSource={RelativeSource AncestorType={x:Type local:RestorePage}} }"

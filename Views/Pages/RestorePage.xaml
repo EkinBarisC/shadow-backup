@@ -36,7 +36,19 @@
             </ui:DataGrid.Columns>
         </ui:DataGrid>
 
-        <TreeView x:Name="BackupContentsTreeView"  Grid.Column="1"  ItemsSource="{Binding ViewModel.FileSystemItems}" />
+        <TreeView x:Name="BackupContentsTreeView"  Grid.Column="1"  ItemsSource="{Binding ViewModel.FileSystemItems}" >
+
+            <TreeView.ItemTemplate>
+                <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                    <StackPanel Orientation="Horizontal">
+                        <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}">
+                        </CheckBox>
+                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Foreground="White" />
+                    </StackPanel>
+                </HierarchicalDataTemplate>
+            </TreeView.ItemTemplate>
+
+        </TreeView>
 
         <Button Content="Restore" />
     </Grid>

@@ -1,0 +1,206 @@
+﻿using Alphaleonis.Win32.Filesystem;
+using Back_It_Up.Views.Pages;
+using Microsoft.VisualBasic;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.IO.Compression;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Threading.Tasks;
+using System.Transactions;
+
+namespace Back_It_Up.Models
+{
+    class Backup
+    {
+        //TODO: remove defaults
+        public ObservableCollection<FileSystemItem> BackupItems = new ObservableCollection<FileSystemItem>();
+        public string DestinationPath = "C:\\Users\\User\\Documents";
+        public BackupSetting BackupSetting = new BackupSetting();
+        public string BackupName = "mock backup";
+        //public string RestorePath;
+
+        public async void PerformBackup()
+        {
+            await CreateMetadata();
+            await FullBackup();
+            await CreateZipArchive();
+            await WriteBackupLocation();
+        }
+
+        public async Task CreateMetadata()
+        {
+            List<object> metadataList = new List<object>();
+
+            foreach (FileSystemItem backupItem in BackupItems)
+            {
+                string type = backupItem.IsFolder ? "folder" : "file";
+                string path = backupItem.Path;
+
+                var metadataItem = new { Type = type, Path = path };
+                metadataList.Add(metadataItem);
+
+                if (backupItem.IsFolder)
+                {
+                    TraverseBackupItems(backupItem.Children, metadataList);
+                }
+            }
+
+            string metadataJson = JsonSerializer.Serialize(metadataList, new JsonSerializerOptions
+            {
+                WriteIndented = true
+            });
+
+            using KernelTransaction kernelTransaction = new KernelTransaction();
+            {
+                try
+                {
+                    await Task.Run(() =>
+                    {
+                        string backupNameFolderPath = Path.Combine(DestinationPath, BackupName);
+                        string metadataFilePath = Path.Combine(backupNameFolderPath, BackupName + "_metadata.json");
+                        Directory.CreateDirectoryTransacted(kernelTransaction, backupNameFolderPath);
+                        File.WriteAllTextTransacted(kernelTransaction, metadataFilePath, metadataJson);
+
+                        kernelTransaction.Commit();
+                    });
+                }
+                catch (Exception)
+                {
+                    kernelTransaction.Rollback();
+                }
+            }
+        }
+
+        private void TraverseBackupItems(IEnumerable<FileSystemItem> items, List<object> metadataList)
+        {
+            foreach (FileSystemItem backupItem in items)
+            {
+                string type = backupItem.IsFolder ? "folder" : "file";
+                string path = backupItem.Path;
+
+                var metadataItem = new { Type = type, Path = path };
+                metadataList.Add(metadataItem);
+
+                if (backupItem.IsFolder)
+                {
+                    TraverseBackupItems(backupItem.Children, metadataList);
+                }
+            }
+        }
+
+        public async Task FullBackup()
+        {
+
+            foreach (FileSystemItem backupItem in BackupItems)
+            {
+                string source = backupItem.Path;
+                // Initialize the shadow copy subsystem.
+                using (VssBackup vss = new VssBackup())
+                {
+                    vss.Setup(Path.GetPathRoot(source));
+                    string snap_path = vss.GetSnapshotPath(source);
+                    string backupNameFolderPath = Path.Combine(DestinationPath, BackupName);
+                    string destinationPath = Path.Combine(backupNameFolderPath, Path.GetFileName(source));
+
+                    using KernelTransaction kernelTransaction = new KernelTransaction();
+                    {
+                        try
+                        {
+                            await Task.Run(() =>
+                            {
+                                Directory.CreateDirectoryTransacted(kernelTransaction, backupNameFolderPath);
+
+                                if (backupItem.IsFolder)
+                                {
+                                    //Directory.Copy(snap_path, destinationPath);
+                                    Directory.CopyTransacted(kernelTransaction, snap_path, destinationPath);
+                                }
+                                else
+                                {
+                                    //File.Copy(snap_path, destinationPath);
+                                    File.CopyTransacted(kernelTransaction, snap_path, destinationPath);
+                                }
+
+
+                                kernelTransaction.Commit();
+                            });
+                        }
+                        catch (Exception)
+                        {
+                            kernelTransaction.Rollback();
+                        }
+                    }
+
+                }
+
+            }
+        }
+
+        public async Task CreateZipArchive()
+        {
+            string zipPath = Path.Combine(DestinationPath, BackupName + ".zip");
+            string sourcePath = Path.Combine(DestinationPath, BackupName);
+            ZipFile.CreateFromDirectory(sourcePath, zipPath, CompressionLevel.Fastest, true);
+            using KernelTransaction kernelTransaction = new KernelTransaction();
+            {
+                try
+                {
+                    await Task.Run(() =>
+                    {
+                        if (Directory.ExistsTransacted(kernelTransaction, sourcePath))
+                        {
+                            Directory.DeleteTransacted(kernelTransaction, sourcePath, true);
+                            kernelTransaction.Commit();
+                        }
+                    });
+                }
+                catch (Exception)
+                {
+                    kernelTransaction.Rollback();
+                }
+            }
+        }
+
+
+        public async Task WriteBackupLocation()
+        {
+            using KernelTransaction kernelTransaction = new KernelTransaction();
+            {
+                try
+                {
+                    await Task.Run(() =>
+                    {
+                        string zipPath = Path.Combine(DestinationPath, BackupName + ".zip");
+                        string appDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BackItUp");
+                        string destinationFilePath = Path.Combine(appDataFolder, "backup_locations.txt");
+
+                        Directory.CreateDirectoryTransacted(kernelTransaction, appDataFolder);
+                        Directory.CreateDirectoryTransacted(kernelTransaction, Path.GetDirectoryName(destinationFilePath));
+
+                        if (!File.ExistsTransacted(kernelTransaction, destinationFilePath))
+                        {
+                            File.WriteAllTextTransacted(kernelTransaction, destinationFilePath, zipPath);
+                        }
+                        else
+                        {
+                            File.AppendAllTextTransacted(kernelTransaction, destinationFilePath, Environment.NewLine + zipPath);
+                        }
+
+                        kernelTransaction.Commit();
+                    });
+                }
+                catch (Exception)
+                {
+                    kernelTransaction.Rollback();
+                }
+            }
+        }
+
+
+    }
+}
+

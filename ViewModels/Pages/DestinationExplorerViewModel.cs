@@ -18,7 +18,7 @@ using Wpf.Ui.Controls;
 
 namespace Back_It_Up.ViewModels.Pages
 {
-    public partial class SourceExplorerViewModel : ObservableObject
+    public partial class DestinationExplorerViewModel : ObservableObject
     {
         public ObservableCollection<FileSystemItem> fileSystemItems { get; set; }
 
@@ -28,7 +28,7 @@ namespace Back_It_Up.ViewModels.Pages
 
         private readonly INavigationService _navigationService;
 
-        public SourceExplorerViewModel(INavigationService navigationService)
+        public DestinationExplorerViewModel(INavigationService navigationService)
         {
             _navigationService = navigationService;
 
@@ -37,7 +37,7 @@ namespace Back_It_Up.ViewModels.Pages
             this.CheckBoxUncheckedCommand = new CommunityToolkit.Mvvm.Input.RelayCommand<FileSystemItem>(CheckBox_Unchecked);
 
             fileSystemItems = new ObservableCollection<FileSystemItem>();
-            LoadFileSystemItems("C:\\Users\\User\\Downloads");
+            LoadFileSystemItems("C:\\Users\\User");
         }
 
         private void LoadFileSystemItems(string path)
@@ -68,10 +68,10 @@ namespace Back_It_Up.ViewModels.Pages
                 fileSystemItems.Clear();
                 foreach (var item in rootItems)
                 {
-                    fileSystemItems.Add(item);
 
                     if (item.IsFolder)
                     {
+                        fileSystemItems.Add(item);
                         item.AddDummyChild();
                     }
                 }
@@ -86,9 +86,16 @@ namespace Back_It_Up.ViewModels.Pages
         {
             dataItem.IsExpanded = true;
 
+            foreach (var item in fileSystemItems)
+            {
+                if (item != dataItem)
+                {
+                    item.IsSelected = false;
+                }
+            }
             BackupStore store = App.GetService<BackupStore>();
 
-            store.selectedBackup.BackupItems.Add(dataItem);
+            store.selectedBackup.DestinationPath = dataItem.Path;
         }
 
         public void CheckBox_Unchecked(FileSystemItem dataItem)
@@ -96,7 +103,10 @@ namespace Back_It_Up.ViewModels.Pages
             dataItem.SetIsSelectedRecursively(false);
 
             BackupStore store = App.GetService<BackupStore>();
-            store.selectedBackup.BackupItems.Remove(dataItem);
+            if (store.selectedBackup.DestinationPath == dataItem.Path)
+            {
+                store.selectedBackup.DestinationPath = null;
+            }
         }
 
         private void ReturnToSourcePage()

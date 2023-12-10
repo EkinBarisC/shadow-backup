@@ -407,5 +407,17 @@ namespace Back_It_Up.Models
                 // Combine the file specification and the directory name.
                 return Path.Combine(path, file.FileSpecification);
             }
+
+        public List<string> GetSnapshotFileNames(Guid snapshotId)
+        {
+            List<string> fileNames = new List<string>();
+
+
+            
+
+            return fileNames;
         }
+
+
+    }
 }

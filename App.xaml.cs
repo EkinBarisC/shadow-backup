@@ -4,6 +4,7 @@
 // All Rights Reserved.
 
 using Back_It_Up.Services;
+using Back_It_Up.Stores;
 using Back_It_Up.ViewModels.Pages;
 using Back_It_Up.ViewModels.Windows;
 using Back_It_Up.Views.Pages;
@@ -42,14 +43,16 @@ namespace Back_It_Up
 
                 services.AddSingleton<DashboardPage>();
                 services.AddSingleton<DashboardViewModel>();
-                services.AddSingleton<DataPage>();
-                services.AddSingleton<DataViewModel>();
                 services.AddSingleton<SettingsPage>();
                 services.AddSingleton<SettingsViewModel>();
                 services.AddSingleton<BackupPage>();
                 services.AddSingleton<BackupViewModel>();
                 services.AddSingleton<SourceExplorerPage>();
                 services.AddSingleton<SourceExplorerViewModel>();
+                services.AddSingleton<DestinationExplorerPage>();
+                services.AddSingleton<DestinationExplorerViewModel>();
+
+                services.AddSingleton<BackupStore>();
             }).Build();
 
         /// <summary>

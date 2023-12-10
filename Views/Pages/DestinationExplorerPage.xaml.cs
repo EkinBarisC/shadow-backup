@@ -1,5 +1,4 @@
 ﻿using Back_It_Up.ViewModels.Pages;
-using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,28 +18,19 @@ using Wpf.Ui.Controls;
 namespace Back_It_Up.Views.Pages
 {
     /// <summary>
-    /// Interaction logic for BackupPage.xaml
+    /// Interaction logic for SourceExplorerPage.xaml
     /// </summary>
-    public partial class BackupPage : INavigableView<BackupViewModel>
+    public partial class DestinationExplorerPage : INavigableView<DestinationExplorerViewModel>
     {
-        public BackupViewModel ViewModel { get; }
-
-        public BackupPage(
-            BackupViewModel viewModel,
-            IContentDialogService contentDialogService
+        public DestinationExplorerViewModel ViewModel { get; }
+        public DestinationExplorerPage(
+            DestinationExplorerViewModel viewModel
             )
         {
             ViewModel = viewModel;
             DataContext = this;
 
             InitializeComponent();
-
-            contentDialogService.SetContentPresenter(InnerContentDialog);
-        }
-
-        private void BreadcrumbBar_ItemClicked(BreadcrumbBar sender, BreadcrumbBarItemClickedEventArgs args)
-        {
-            ViewModel.ChangeUserControl(args.Item.ToString());
         }
     }
 }

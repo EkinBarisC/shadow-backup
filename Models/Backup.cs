@@ -34,7 +34,14 @@ namespace Back_It_Up.Models
 
         public int CreateManifest()
         {
-            string manifestPath = Path.Combine(DestinationPath, BackupName + "_manifest.json");
+            string destinationFolder = Path.Combine(DestinationPath, BackupName);
+
+            if (!Directory.Exists(destinationFolder))
+            {
+                Directory.CreateDirectory(destinationFolder);
+            }
+
+            string manifestPath = Path.Combine(destinationFolder, "manifest.json");
             int version = 1;
 
             List<BackupVersion> backupVersions = new List<BackupVersion>();
@@ -46,7 +53,7 @@ namespace Back_It_Up.Models
                 {
                     Version = 1,
                     DateCreated = DateTime.Now,
-                    BackupZipFilePath = Path.Combine(DestinationPath, BackupName + "_v1.zip")
+                    BackupZipFilePath = Path.Combine(destinationFolder, "v1.zip")
                 });
 
                 string manifestJson = JsonSerializer.Serialize(backupVersions, new JsonSerializerOptions
@@ -66,7 +73,7 @@ namespace Back_It_Up.Models
                 {
                     Version = version,
                     DateCreated = DateTime.Now,
-                    BackupZipFilePath = Path.Combine(DestinationPath, BackupName + "_v" + version + ".zip")
+                    BackupZipFilePath = Path.Combine(destinationFolder, "v" + version + ".zip")
                 });
 
                 string manifestJson = JsonSerializer.Serialize(backupVersions, new JsonSerializerOptions

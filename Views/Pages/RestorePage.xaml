@@ -36,7 +36,7 @@
             </ui:DataGrid.Columns>
         </ui:DataGrid>
 
-        <TreeView x:Name="BackupContentsTreeView"  Grid.Column="1"/>
+        <TreeView x:Name="BackupContentsTreeView"  Grid.Column="1"  ItemsSource="{Binding ViewModel.FileSystemItems}" />
 
         <Button Content="Restore" />
     </Grid>

@@ -14,6 +14,8 @@ using System.Windows.Input;
 using Wpf.Ui.Controls;
 using File = Alphaleonis.Win32.Filesystem.File;
 using Path = Alphaleonis.Win32.Filesystem.Path;
+using System.Collections.ObjectModel;
+using DirectoryInfo = Alphaleonis.Win32.Filesystem.DirectoryInfo;
 
 namespace Back_It_Up.ViewModels.Pages
 {
@@ -21,6 +23,9 @@ namespace Back_It_Up.ViewModels.Pages
     {
         [ObservableProperty]
         private List<BackupVersion> _backupVersions;
+
+        [ObservableProperty]
+        private ObservableCollection<FileSystemItem> _fileSystemItems;
 
         public ICommand LoadContentsCommand { get; }
         public RestoreViewModel()
@@ -34,8 +39,43 @@ namespace Back_It_Up.ViewModels.Pages
 
             string zipFilePath = backupVersion.BackupZipFilePath;
             string metadata = await ReadMetadataFromZip(zipFilePath);
+            FileSystemItems = CreateFileSystemItemsFromJson(metadata);
 
+        }
 
+        public ObservableCollection<FileSystemItem> CreateFileSystemItemsFromJson(string json)
+        {
+            var backupItems = JsonSerializer.Deserialize<List<BackupItem>>(json);
+            var fileSystemItems = new ObservableCollection<FileSystemItem>();
+
+            if (backupItems == null)
+                return fileSystemItems;
+
+            // Process the backup items
+            foreach (var item in backupItems)
+            {
+                var fileSystemItem = new FileSystemItem
+                {
+                    Path = item.Path,
+                    Name = System.IO.Path.GetFileName(item.Path),
+                    IsFolder = item.Type == "folder",
+                    // Other properties can be set as needed
+                };
+
+                // Add to the parent's children or directly to the fileSystemItems
+                var parentDir = System.IO.Path.GetDirectoryName(item.Path);
+                var parentItem = fileSystemItems.FirstOrDefault(fi => fi.Path == parentDir);
+                if (parentItem != null)
+                {
+                    parentItem.Children.Add(fileSystemItem);
+                }
+                else
+                {
+                    fileSystemItems.Add(fileSystemItem);
+                }
+            }
+
+            return fileSystemItems;
         }
 
         public async Task<string> ReadMetadataFromZip(string zipFilePath)
@@ -81,4 +121,11 @@ namespace Back_It_Up.ViewModels.Pages
 
 
     }
+
+    public class BackupItem
+    {
+        public string Type { get; set; }
+        public string Path { get; set; }
+    }
+
 }

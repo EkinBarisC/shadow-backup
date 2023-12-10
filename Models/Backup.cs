@@ -23,13 +23,65 @@ namespace Back_It_Up.Models
         public string BackupName = "mock backup";
         //public string RestorePath;
 
-        public async void PerformBackup()
+        public void PerformBackup()
         {
-            await CreateMetadata();
-            await FullBackup();
-            await CreateZipArchive();
-            await WriteBackupLocation();
+            CreateManifest();
+            //await CreateMetadata();
+            //await FullBackup();
+            //await CreateZipArchive();
+            //await WriteBackupLocation();
         }
+
+        public int CreateManifest()
+        {
+            string manifestPath = Path.Combine(DestinationPath, BackupName + "_manifest.json");
+            int version = 1;
+
+            List<BackupVersion> backupVersions = new List<BackupVersion>();
+
+            // Check if the manifest file already exists. If it does, read and deserialize its content.
+            if (!File.Exists(manifestPath))
+            {
+                backupVersions.Add(new BackupVersion()
+                {
+                    Version = 1,
+                    DateCreated = DateTime.Now,
+                    BackupZipFilePath = Path.Combine(DestinationPath, BackupName + "_v1.zip")
+                });
+
+                string manifestJson = JsonSerializer.Serialize(backupVersions, new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                });
+
+                File.WriteAllText(manifestPath, manifestJson);
+            }
+            else if (File.Exists(manifestPath))
+            {
+                string existingManifestJson = File.ReadAllText(manifestPath);
+                backupVersions = JsonSerializer.Deserialize<List<BackupVersion>>(existingManifestJson) ?? new List<BackupVersion>();
+                version = backupVersions.Last().Version + 1;
+
+                backupVersions.Add(new BackupVersion()
+                {
+                    Version = version,
+                    DateCreated = DateTime.Now,
+                    BackupZipFilePath = Path.Combine(DestinationPath, BackupName + "_v" + version + ".zip")
+                });
+
+                string manifestJson = JsonSerializer.Serialize(backupVersions, new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                });
+
+                File.WriteAllText(manifestPath, manifestJson);
+
+
+            }
+
+            return version;
+        }
+
 
         public async Task CreateMetadata()
         {
@@ -201,6 +253,13 @@ namespace Back_It_Up.Models
         }
 
 
+    }
+
+    public class BackupVersion
+    {
+        public int Version { get; set; }
+        public string BackupZipFilePath { get; set; }
+        public DateTime DateCreated { get; set; }
     }
 }
 

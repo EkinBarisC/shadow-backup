@@ -18,24 +18,23 @@ namespace Back_It_Up.Models
     {
         //TODO: remove defaults
         public ObservableCollection<FileSystemItem> BackupItems = new ObservableCollection<FileSystemItem>();
-        public string DestinationPath = "C:\\Users\\User\\Documents";
+        public string DestinationPath = "C:\\Users\\User\\Documents\\backups";
         public BackupSetting BackupSetting = new BackupSetting();
         public string BackupName = "mock backup";
         //public string RestorePath;
 
-        public void PerformBackup()
+        public async void PerformBackup()
         {
-            CreateManifest();
-            //await CreateMetadata();
-            //await FullBackup();
-            //await CreateZipArchive();
+            int version = CreateManifest();
+            await CreateMetadata();
+            await FullBackup();
+            await CreateZipArchive(version);
             //await WriteBackupLocation();
         }
 
         public int CreateManifest()
         {
             string destinationFolder = Path.Combine(DestinationPath, BackupName);
-
             if (!Directory.Exists(destinationFolder))
             {
                 Directory.CreateDirectory(destinationFolder);
@@ -119,8 +118,8 @@ namespace Back_It_Up.Models
                 {
                     await Task.Run(() =>
                     {
-                        string backupNameFolderPath = Path.Combine(DestinationPath, BackupName);
-                        string metadataFilePath = Path.Combine(backupNameFolderPath, BackupName + "_metadata.json");
+                        string backupNameFolderPath = Path.Combine(DestinationPath, "Contents");
+                        string metadataFilePath = Path.Combine(backupNameFolderPath, "metadata.json");
                         Directory.CreateDirectoryTransacted(kernelTransaction, backupNameFolderPath);
                         File.WriteAllTextTransacted(kernelTransaction, metadataFilePath, metadataJson);
 
@@ -162,7 +161,7 @@ namespace Back_It_Up.Models
                 {
                     vss.Setup(Path.GetPathRoot(source));
                     string snap_path = vss.GetSnapshotPath(source);
-                    string backupNameFolderPath = Path.Combine(DestinationPath, BackupName);
+                    string backupNameFolderPath = Path.Combine(DestinationPath, "Contents");
                     string destinationPath = Path.Combine(backupNameFolderPath, Path.GetFileName(source));
 
                     using KernelTransaction kernelTransaction = new KernelTransaction();
@@ -199,11 +198,15 @@ namespace Back_It_Up.Models
             }
         }
 
-        public async Task CreateZipArchive()
+        public async Task CreateZipArchive(int version)
         {
-            string zipPath = Path.Combine(DestinationPath, BackupName + ".zip");
-            string sourcePath = Path.Combine(DestinationPath, BackupName);
-            ZipFile.CreateFromDirectory(sourcePath, zipPath, CompressionLevel.Fastest, true);
+
+            string backupDestinationFolder = Path.Combine(DestinationPath, BackupName);
+
+            string zipPath = Path.Combine(backupDestinationFolder, "v" + version + ".zip");
+            string sourcePath = Path.Combine(DestinationPath, "Contents");
+            string manifestPath = Path.Combine(DestinationPath, "manifest.json");
+            ZipFile.CreateFromDirectory(sourcePath, zipPath, CompressionLevel.Fastest, false);
             using KernelTransaction kernelTransaction = new KernelTransaction();
             {
                 try

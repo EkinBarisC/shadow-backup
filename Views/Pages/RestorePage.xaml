@@ -42,6 +42,14 @@
                 <HierarchicalDataTemplate ItemsSource="{Binding Children}">
                     <StackPanel Orientation="Horizontal">
                         <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}">
+                            <i:Interaction.Triggers>
+                                <i:EventTrigger EventName="Checked">
+                                    <i:InvokeCommandAction Command="{Binding ViewModel.CheckBoxCheckedCommand, RelativeSource={RelativeSource AncestorType={x:Type local:RestorePage}} }" CommandParameter="{Binding}" />
+                                </i:EventTrigger>
+                                <i:EventTrigger EventName="Unchecked">
+                                    <i:InvokeCommandAction Command="{Binding ViewModel.CheckBoxUncheckedCommand, RelativeSource={RelativeSource AncestorType={x:Type local:RestorePage}} }" CommandParameter="{Binding}" />
+                                </i:EventTrigger>
+                            </i:Interaction.Triggers>
                         </CheckBox>
                         <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Foreground="White" />
                     </StackPanel>

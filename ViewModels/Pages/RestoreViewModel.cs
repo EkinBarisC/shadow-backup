@@ -28,11 +28,28 @@ namespace Back_It_Up.ViewModels.Pages
         private ObservableCollection<FileSystemItem> _fileSystemItems;
 
         public ICommand LoadContentsCommand { get; }
+
+        public ICommand CheckBoxCheckedCommand { get; set; }
+        public ICommand CheckBoxUncheckedCommand { get; set; }
+
+
         public RestoreViewModel()
         {
             LoadContentsCommand = new RelayCommand<BackupVersion>(LoadContents);
+            CheckBoxCheckedCommand = new RelayCommand<FileSystemItem>(CheckBoxChecked);
+            CheckBoxUncheckedCommand = new RelayCommand<FileSystemItem>(CheckBoxUnchecked);
             readManifestFile();
         }
+
+        private void CheckBoxChecked(FileSystemItem datItem)
+        {
+
+        }
+        private void CheckBoxUnchecked(FileSystemItem dataItem)
+        {
+
+        }
+
 
         private async void LoadContents(BackupVersion backupVersion)
         {

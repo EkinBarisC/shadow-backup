@@ -7,6 +7,7 @@ using Alphaleonis.Win32.Filesystem;
 using Back_It_Up.Models;
 using Back_It_Up.Stores;
 using System.Text.Json;
+using System.Windows.Input;
 using Wpf.Ui.Controls;
 
 namespace Back_It_Up.ViewModels.Pages
@@ -15,22 +16,27 @@ namespace Back_It_Up.ViewModels.Pages
     {
         [ObservableProperty]
         private List<BackupVersion> _backupVersions;
+
+        public ICommand LoadContentsCommand { get; }
         public RestoreViewModel()
         {
+            LoadContentsCommand = new RelayCommand<BackupVersion>(LoadContents);
             readManifestFile();
+        }
+
+        private void LoadContents(BackupVersion obj)
+        {
+            Console.WriteLine("ekin");
         }
 
         public void readManifestFile()
         {
             BackupStore store = App.GetService<BackupStore>();
             string backupName = store.selectedBackup.BackupName;
-            System.Diagnostics.Debug.WriteLine(backupName);
 
             string manifestPath = Path.Combine(store.selectedBackup.DestinationPath, backupName, "manifest.json");
-
             string manifestJson = File.ReadAllText(manifestPath);
             BackupVersions = JsonSerializer.Deserialize<List<BackupVersion>>(manifestJson) ?? new List<BackupVersion>();
-
         }
 
 

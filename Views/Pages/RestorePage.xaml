@@ -4,7 +4,7 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       xmlns:local="clr-namespace:Back_It_Up.Views.Pages"
-      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml" xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
       Title="RestorePage"
    d:DataContext="{d:DesignInstance local:RestorePage,
                                    IsDesignTimeCreatable=False}"
@@ -17,12 +17,26 @@
 
     <Grid>
 
-        <ui:DataGrid ItemsSource="{Binding ViewModel.BackupVersions, Mode=TwoWay}" AutoGenerateColumns="False" >
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition />
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
+
+        <ui:DataGrid x:Name="VersionsDataGrid" ItemsSource="{Binding ViewModel.BackupVersions, Mode=TwoWay}" AutoGenerateColumns="False" Grid.Column="0"  >
+            <i:Interaction.Triggers>
+                <i:EventTrigger EventName="MouseDoubleClick">
+                    <i:InvokeCommandAction Command="{Binding ViewModel.LoadContentsCommand, RelativeSource={RelativeSource AncestorType={x:Type local:RestorePage}} }"
+                                           CommandParameter="{Binding ElementName=VersionsDataGrid, Path=SelectedItem}" />
+                </i:EventTrigger>
+            </i:Interaction.Triggers>
             <ui:DataGrid.Columns>
                 <DataGridTextColumn Header="Version" Binding="{Binding Version}" />
                 <DataGridTextColumn Header="Date Created" Binding="{Binding DateCreated}" Width="*" />
             </ui:DataGrid.Columns>
         </ui:DataGrid>
+
+        <TreeView x:Name="BackupContentsTreeView"  Grid.Column="1"/>
+
         <Button Content="Restore" />
     </Grid>
 </Page>

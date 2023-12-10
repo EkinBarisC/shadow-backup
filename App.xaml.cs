@@ -51,6 +51,8 @@ namespace Back_It_Up
                 services.AddSingleton<SourceExplorerViewModel>();
                 services.AddSingleton<DestinationExplorerPage>();
                 services.AddSingleton<DestinationExplorerViewModel>();
+                services.AddSingleton<RestorePage>();
+                services.AddSingleton<RestoreViewModel>();
 
                 services.AddSingleton<BackupStore>();
             }).Build();

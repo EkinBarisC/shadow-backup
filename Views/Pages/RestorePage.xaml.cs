@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Back_It_Up.ViewModels.Pages;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,16 +13,20 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Wpf.Ui.Controls;
 
 namespace Back_It_Up.Views.Pages
 {
     /// <summary>
     /// Interaction logic for RestorePage.xaml
     /// </summary>
-    public partial class RestorePage : Page
+    public partial class RestorePage : INavigableView<RestoreViewModel>
     {
-        public RestorePage()
+        public RestoreViewModel ViewModel { get; }
+        public RestorePage(RestoreViewModel viewModel)
         {
+            ViewModel = viewModel;
+            DataContext = this;
             InitializeComponent();
         }
     }

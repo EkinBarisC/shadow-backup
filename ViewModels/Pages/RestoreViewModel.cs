@@ -45,6 +45,7 @@ namespace Back_It_Up.ViewModels.Pages
         private void Restore()
         {
             BackupStore store = App.GetService<BackupStore>();
+            //await store.selectedBackup.PerformRestore();
         }
 
         private void CheckBoxChecked(FileSystemItem dataItem)
@@ -63,7 +64,7 @@ namespace Back_It_Up.ViewModels.Pages
         {
 
             BackupStore store = App.GetService<BackupStore>();
-            store.Version = backupVersion;
+            store.selectedBackup.Version = backupVersion;
             string zipFilePath = backupVersion.BackupZipFilePath;
             string metadata = await ReadMetadataFromZip(zipFilePath);
             FileSystemItems = CreateFileSystemItemsFromJson(metadata);

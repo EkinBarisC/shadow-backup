@@ -5,12 +5,16 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Transactions;
+using Directory = Alphaleonis.Win32.Filesystem.Directory;
+using File = Alphaleonis.Win32.Filesystem.File;
+using Path = Alphaleonis.Win32.Filesystem.Path;
 
 namespace Back_It_Up.Models
 {
@@ -24,7 +28,6 @@ namespace Back_It_Up.Models
         public BackupSetting BackupSetting = new BackupSetting();
         public string BackupName = "mock backup";
         public BackupVersion Version;
-        //public string RestorePath;
 
         public async void PerformBackup()
         {
@@ -32,7 +35,7 @@ namespace Back_It_Up.Models
             await CreateMetadata();
             await FullBackup();
             await CreateZipArchive(version);
-            //await WriteBackupLocation();
+            await WriteBackupLocation();
         }
 
         public int CreateManifest()
@@ -264,7 +267,6 @@ namespace Back_It_Up.Models
                 }
             }
         }
-
 
     }
 

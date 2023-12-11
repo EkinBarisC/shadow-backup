@@ -31,29 +31,39 @@ namespace Back_It_Up.ViewModels.Pages
 
         public ICommand CheckBoxCheckedCommand { get; set; }
         public ICommand CheckBoxUncheckedCommand { get; set; }
-
+        public ICommand RestoreCommand { get; }
 
         public RestoreViewModel()
         {
             LoadContentsCommand = new RelayCommand<BackupVersion>(LoadContents);
             CheckBoxCheckedCommand = new RelayCommand<FileSystemItem>(CheckBoxChecked);
             CheckBoxUncheckedCommand = new RelayCommand<FileSystemItem>(CheckBoxUnchecked);
+            RestoreCommand = new RelayCommand(Restore);
             readManifestFile();
         }
 
-        private void CheckBoxChecked(FileSystemItem datItem)
+        private void Restore()
         {
+            BackupStore store = App.GetService<BackupStore>();
+        }
 
+        private void CheckBoxChecked(FileSystemItem dataItem)
+        {
+            BackupStore store = App.GetService<BackupStore>();
+            store.selectedBackup.RestoreItems.Add(dataItem);
         }
         private void CheckBoxUnchecked(FileSystemItem dataItem)
         {
-
+            BackupStore store = App.GetService<BackupStore>();
+            store.selectedBackup.RestoreItems.Remove(dataItem);
         }
 
 
         private async void LoadContents(BackupVersion backupVersion)
         {
 
+            BackupStore store = App.GetService<BackupStore>();
+            store.Version = backupVersion;
             string zipFilePath = backupVersion.BackupZipFilePath;
             string metadata = await ReadMetadataFromZip(zipFilePath);
             FileSystemItems = CreateFileSystemItemsFromJson(metadata);

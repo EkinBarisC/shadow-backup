@@ -18,9 +18,12 @@ namespace Back_It_Up.Models
     {
         //TODO: remove defaults
         public ObservableCollection<FileSystemItem> BackupItems = new ObservableCollection<FileSystemItem>();
+        public ObservableCollection<FileSystemItem> RestoreItems = new ObservableCollection<FileSystemItem>();
         public string DestinationPath = "C:\\Users\\User\\Documents\\backups";
+        public string RestorePath = "C:\\Users\\User\\Documents\\backups";
         public BackupSetting BackupSetting = new BackupSetting();
         public string BackupName = "mock backup";
+        public BackupVersion Version;
         //public string RestorePath;
 
         public async void PerformBackup()

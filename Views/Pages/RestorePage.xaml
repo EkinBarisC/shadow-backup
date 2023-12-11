@@ -58,6 +58,6 @@
 
         </TreeView>
 
-        <Button Content="Restore" />
+        <Button Content="Restore" Command="{Binding ViewModel.RestoreCommand}" />
     </Grid>
 </Page>

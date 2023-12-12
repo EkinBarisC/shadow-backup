@@ -79,6 +79,24 @@ namespace Back_It_Up.ViewModels.Pages
             FileSystemItems = CreateFileSystemItemsFromJson(metadata);
 
         }
+        private FileSystemItem FindItemByPath(ObservableCollection<FileSystemItem> items, string path)
+        {
+            foreach (var item in items)
+            {
+                if (item.Path == path)
+                {
+                    return item;
+                }
+
+                var foundItem = FindItemByPath(item.Children, path);
+                if (foundItem != null)
+                {
+                    return foundItem;
+                }
+            }
+
+            return null;
+        }
 
         public ObservableCollection<FileSystemItem> CreateFileSystemItemsFromJson(string json)
         {
@@ -103,7 +121,7 @@ namespace Back_It_Up.ViewModels.Pages
 
                     // Add to the parent's children or directly to the fileSystemItems
                     var parentDir = System.IO.Path.GetDirectoryName(item.Path);
-                    var parentItem = fileSystemItems.FirstOrDefault(fi => fi.Path == parentDir);
+                    var parentItem = FindItemByPath(fileSystemItems, parentDir);
                     if (parentItem != null)
                     {
                         parentItem.Children.Add(fileSystemItem);

@@ -26,7 +26,7 @@ namespace Back_It_Up.Models
         public string DestinationPath = "C:\\Users\\User\\Documents\\backups";
         public string RestorePath = "C:\\Users\\User\\Documents\\backups";
         public BackupSetting BackupSetting = new BackupSetting();
-        public string BackupName = "mock backup";
+        public string BackupName = "nested backup";
         public BackupVersion Version;
 
         public async void PerformBackup()
@@ -36,6 +36,18 @@ namespace Back_It_Up.Models
             await FullBackup();
             await CreateZipArchive(version);
             await WriteBackupLocation();
+        }
+
+        public void PerformRestore()
+        {
+
+            string zipFilePath = Version.BackupZipFilePath;
+
+            using (ZipArchive archive = ZipFile.OpenRead(zipFilePath))
+            {
+                var metadataEntry = archive.GetEntry("metadata.json");
+            }
+
         }
 
         public int CreateManifest()

@@ -54,7 +54,7 @@ namespace Back_It_Up.ViewModels.Pages
         private void Restore()
         {
             BackupStore store = App.GetService<BackupStore>();
-            //await store.selectedBackup.PerformRestore();
+            store.selectedBackup.PerformRestore();
         }
 
         private void CheckBoxChecked(FileSystemItem dataItem)
@@ -91,24 +91,27 @@ namespace Back_It_Up.ViewModels.Pages
             // Process the backup items
             foreach (var item in backupItems)
             {
-                var fileSystemItem = new FileSystemItem
+                if (item.Path != null && Path.GetFileName(item.Path) != "metadata.json")
                 {
-                    Path = item.Path,
-                    Name = System.IO.Path.GetFileName(item.Path),
-                    IsFolder = item.Type == "folder",
-                    // Other properties can be set as needed
-                };
+                    var fileSystemItem = new FileSystemItem
+                    {
+                        Path = item.Path,
+                        Name = System.IO.Path.GetFileName(item.Path),
+                        IsFolder = item.Type == "folder",
+                        // Other properties can be set as needed
+                    };
 
-                // Add to the parent's children or directly to the fileSystemItems
-                var parentDir = System.IO.Path.GetDirectoryName(item.Path);
-                var parentItem = fileSystemItems.FirstOrDefault(fi => fi.Path == parentDir);
-                if (parentItem != null)
-                {
-                    parentItem.Children.Add(fileSystemItem);
-                }
-                else
-                {
-                    fileSystemItems.Add(fileSystemItem);
+                    // Add to the parent's children or directly to the fileSystemItems
+                    var parentDir = System.IO.Path.GetDirectoryName(item.Path);
+                    var parentItem = fileSystemItems.FirstOrDefault(fi => fi.Path == parentDir);
+                    if (parentItem != null)
+                    {
+                        parentItem.Children.Add(fileSystemItem);
+                    }
+                    else
+                    {
+                        fileSystemItems.Add(fileSystemItem);
+                    }
                 }
             }
 

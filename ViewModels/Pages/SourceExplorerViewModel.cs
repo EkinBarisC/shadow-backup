@@ -87,6 +87,7 @@ namespace Back_It_Up.ViewModels.Pages
             dataItem.IsExpanded = true;
 
             BackupStore store = App.GetService<BackupStore>();
+            //dataItem.LoadAllContents();
 
             store.selectedBackup.BackupItems.Add(dataItem);
         }

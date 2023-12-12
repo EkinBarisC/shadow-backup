@@ -167,9 +167,10 @@ namespace Back_It_Up.Models
                         item.Parent = this;
                         Children.Add(item);
 
+                        // TODO: add dummy child only for lazy loading
                         if (item.IsFolder)
                         {
-                            item.AddDummyChild();
+                            item.LoadContents();
                         }
                     }
                     Children.Remove(Children.Where(child => child.isDummy).SingleOrDefault());

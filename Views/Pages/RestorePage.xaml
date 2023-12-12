@@ -17,6 +17,12 @@
 
     <Grid>
 
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="100" />
+        </Grid.RowDefinitions>
+
+
         <Grid.ColumnDefinitions>
             <ColumnDefinition />
             <ColumnDefinition />
@@ -58,7 +64,9 @@
 
         </TreeView>
 
-        <Button Content="Select Alternate Path" Command="{Binding ViewModel.OpenDestinationExplorerCommand}" />
-        <Button Content="Restore" Command="{Binding ViewModel.RestoreCommand}" />
+        <StackPanel Orientation="Vertical" Grid.Row="1">
+            <Button Content="Select Alternate Path" Command="{Binding ViewModel.OpenDestinationExplorerCommand}" />
+            <Button Content="Restore" Command="{Binding ViewModel.RestoreCommand}" />
+        </StackPanel>
     </Grid>
 </Page>

@@ -16,6 +16,7 @@ using File = Alphaleonis.Win32.Filesystem.File;
 using Path = Alphaleonis.Win32.Filesystem.Path;
 using System.Collections.ObjectModel;
 using DirectoryInfo = Alphaleonis.Win32.Filesystem.DirectoryInfo;
+using Back_It_Up.Views.Pages;
 
 namespace Back_It_Up.ViewModels.Pages
 {
@@ -32,16 +33,24 @@ namespace Back_It_Up.ViewModels.Pages
         public ICommand CheckBoxCheckedCommand { get; set; }
         public ICommand CheckBoxUncheckedCommand { get; set; }
         public ICommand RestoreCommand { get; }
+        public ICommand OpenDestinationExplorerCommand { get; }
 
-        public RestoreViewModel()
+        private readonly INavigationService _navigationService;
+
+        public RestoreViewModel(INavigationService navigationService)
         {
+            _navigationService = navigationService;
             LoadContentsCommand = new RelayCommand<BackupVersion>(LoadContents);
             CheckBoxCheckedCommand = new RelayCommand<FileSystemItem>(CheckBoxChecked);
             CheckBoxUncheckedCommand = new RelayCommand<FileSystemItem>(CheckBoxUnchecked);
+            OpenDestinationExplorerCommand = new RelayCommand(OpenDestinationExplorer);
             RestoreCommand = new RelayCommand(Restore);
             readManifestFile();
         }
-
+        private void OpenDestinationExplorer()
+        {
+            _navigationService.Navigate(typeof(DestinationExplorerPage));
+        }
         private void Restore()
         {
             BackupStore store = App.GetService<BackupStore>();

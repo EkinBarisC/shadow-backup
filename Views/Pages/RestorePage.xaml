@@ -58,6 +58,7 @@
 
         </TreeView>
 
+        <Button Content="Select Alternate Path" Command="{Binding ViewModel.OpenDestinationExplorerCommand}" />
         <Button Content="Restore" Command="{Binding ViewModel.RestoreCommand}" />
     </Grid>
 </Page>

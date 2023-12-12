@@ -111,9 +111,7 @@ namespace Back_It_Up.ViewModels.Pages
 
         private void ReturnToSourcePage()
         {
-
-            BackupStore store = App.GetService<BackupStore>();
-            _navigationService.Navigate(typeof(BackupPage));
+            _navigationService.GoBack();
         }
     }
 }

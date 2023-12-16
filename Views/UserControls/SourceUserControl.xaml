@@ -24,6 +24,11 @@
             <ColumnDefinition />
         </Grid.ColumnDefinitions>
 
+        <ui:TextBox Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="5" PlaceholderText="enter backup name" PlaceholderEnabled="True"
+                    HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="30"
+                    KeyDown="TextBox_KeyDown" x:Name="BackupNameTextBox"
+                    />
+
         <Button Grid.Row="1" Grid.Column="1"  Width="200" Height="200" Command="{Binding ViewModel.OpenSourceExplorerCommand}" >
             <Button.Content>
                 <Grid>

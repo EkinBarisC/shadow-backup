@@ -1,4 +1,5 @@
-﻿using Back_It_Up.ViewModels.Pages;
+﻿using Back_It_Up.Stores;
+using Back_It_Up.ViewModels.Pages;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -32,6 +33,15 @@ namespace Back_It_Up.Views.UserControls
         private void Button_Click(object sender, RoutedEventArgs e)
         {
 
+        }
+
+        private void TextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                BackupStore store = App.GetService<BackupStore>();
+                store.SelectedBackup.BackupName = BackupNameTextBox.Text;
+            }
         }
     }
 }

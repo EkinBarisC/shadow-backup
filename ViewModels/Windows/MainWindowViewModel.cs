@@ -20,8 +20,8 @@ namespace Back_It_Up.ViewModels.Windows
         {
             new NavigationViewItem()
             {
-                Content = "Home",
-                Icon = new SymbolIcon { Symbol = SymbolRegular.Home24 },
+                Content = "Add New Backup",
+                Icon = new SymbolIcon { Symbol = SymbolRegular.Add24 },
                 TargetPageType = typeof(Views.Pages.DashboardPage)
             }
         };
@@ -48,21 +48,22 @@ namespace Back_It_Up.ViewModels.Windows
             LoadBackupLocations();
         }
 
+
         private void LoadBackupLocations()
         {
             // Load backup locations from the file or any other storage mechanism
             List<string> backupLocations = LoadBackupLocationsFromFile();
 
-            // Create menu items based on backup locations
-            MenuItems = new ObservableCollection<object>(
-                backupLocations.Select(location => new NavigationViewItem()
+            foreach (var location in backupLocations)
+            {
+                MenuItems.Add(new NavigationViewItem()
                 {
-                    Content = $"{location}",
+                    Content = location,
                     Icon = new SymbolIcon { Symbol = SymbolRegular.Document24 }, // Adjust the icon as needed
                     Tag = location, // You can use Tag to store additional information, like the backup location
                     TargetPageType = typeof(Views.Pages.DashboardPage)
-                })
-            );
+                });
+            }
         }
 
         private List<string> LoadBackupLocationsFromFile()

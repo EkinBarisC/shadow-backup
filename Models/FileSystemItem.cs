@@ -153,7 +153,8 @@ namespace Back_It_Up.Models
                                 IsFolder = Directory.Exists(item),
                                 IsExpanded = false,
                                 FileType = Directory.Exists(item) ? "file folder" : mimeType.Substring(0, mimeType.IndexOf('/')),
-                                FileSizeInBytes = Directory.Exists(item) ? 0 : new FileInfo(item).Length
+                                FileSizeInBytes = Directory.Exists(item) ? 0 : new FileInfo(item).Length,
+                                Parent = this
                             };
                         }
                         catch (UnauthorizedAccessException)

@@ -24,9 +24,9 @@ namespace Back_It_Up.Models
         public ObservableCollection<FileSystemItem> BackupItems = new ObservableCollection<FileSystemItem>();
         public ObservableCollection<FileSystemItem> RestoreItems = new ObservableCollection<FileSystemItem>();
         public string DestinationPath = "C:\\Users\\User\\Documents\\backups";
-        public string RestorePath = "C:\\Users\\User\\Documents\\backups";
+        public string RestorePath = "C:\\Users\\User\\Documents\\restores";
         public BackupSetting BackupSetting = new BackupSetting();
-        public string BackupName = "nested backup";
+        public string BackupName = "nested backup 2";
         public BackupVersion Version;
 
         public async void PerformBackup()
@@ -38,17 +38,58 @@ namespace Back_It_Up.Models
             await WriteBackupLocation();
         }
 
-        public void PerformRestore()
+        public async Task PerformRestore()
         {
-
-            string zipFilePath = Version.BackupZipFilePath;
+            string zipFilePath = Version.BackupZipFilePath; // Assuming Version is defined and holds the correct data
 
             using (ZipArchive archive = ZipFile.OpenRead(zipFilePath))
             {
                 var metadataEntry = archive.GetEntry("metadata.json");
+
+                using (var reader = new StreamReader(metadataEntry.Open()))
+                {
+                    string metadataJson = await reader.ReadToEndAsync();
+                    var metadataItems = JsonSerializer.Deserialize<List<MetadataItem>>(metadataJson);
+
+                    foreach (var item in metadataItems)
+                    {
+                        if (item.Type == "file")
+                        {
+                            string entryName = GetEntryNameFromMetadata(item);
+                            var zipEntry = archive.GetEntry(entryName);
+
+                            if (zipEntry != null)
+                            {
+                                string fullRestorePath = Path.Combine(RestorePath, entryName);
+                                string directoryPath = Path.GetDirectoryName(fullRestorePath);
+
+                                if (!Directory.Exists(directoryPath))
+                                {
+                                    Directory.CreateDirectory(directoryPath);
+                                }
+
+                                zipEntry.ExtractToFile(fullRestorePath, true); // Extract the file
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        private string GetEntryNameFromMetadata(MetadataItem item)
+        {
+            // Assuming the RootPath is the path to the root of the backup
+            string backupRoot = Path.GetDirectoryName(item.RootPath);
+
+            if (!string.IsNullOrEmpty(backupRoot))
+            {
+                // Remove the backup root part from the item's path
+                string relativePath = item.Path.Substring(backupRoot.Length).TrimStart(Path.DirectorySeparatorChar);
+                return relativePath.Replace("\\", "/"); // Convert to ZIP format (forward slashes)
             }
 
+            return string.Empty;
         }
+
 
         public int CreateManifest()
         {
@@ -109,20 +150,11 @@ namespace Back_It_Up.Models
 
         public async Task CreateMetadata()
         {
-            List<object> metadataList = new List<object>();
+            List<MetadataItem> metadataList = new List<MetadataItem>();
 
             foreach (FileSystemItem backupItem in BackupItems)
             {
-                string type = backupItem.IsFolder ? "folder" : "file";
-                string path = backupItem.Path;
-
-                var metadataItem = new { Type = type, Path = path };
-                metadataList.Add(metadataItem);
-
-                if (backupItem.IsFolder)
-                {
-                    TraverseBackupItems(backupItem.Children, metadataList);
-                }
+                AddItemAndChildrenToMetadata(backupItem, metadataList, backupItem.Path);
             }
 
             string metadataJson = JsonSerializer.Serialize(metadataList, new JsonSerializerOptions
@@ -150,6 +182,27 @@ namespace Back_It_Up.Models
                 }
             }
         }
+
+
+        private void AddItemAndChildrenToMetadata(FileSystemItem item, List<MetadataItem> metadataList, string rootPath)
+        {
+            string type = item.IsFolder ? "folder" : "file";
+            metadataList.Add(new MetadataItem
+            {
+                Type = type,
+                Path = item.Path,
+                RootPath = rootPath
+            });
+
+            if (item.IsFolder)
+            {
+                foreach (var child in item.Children)
+                {
+                    AddItemAndChildrenToMetadata(child, metadataList, rootPath);
+                }
+            }
+        }
+
 
         private void TraverseBackupItems(IEnumerable<FileSystemItem> items, List<object> metadataList)
         {

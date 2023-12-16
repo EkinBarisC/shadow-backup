@@ -51,6 +51,15 @@ namespace Back_It_Up.ViewModels.Windows
 
         private void LoadBackupLocations()
         {
+            // Clear existing backup-related items from MenuItems
+            var backupItems = MenuItems.OfType<NavigationViewItem>()
+                                       .Where(item => item.Tag is string && ((string)item.Tag).StartsWith("backup_"))
+                                       .ToList();
+            foreach (var item in backupItems)
+            {
+                MenuItems.Remove(item);
+            }
+
             // Load backup locations from the file or any other storage mechanism
             List<string> backupLocations = LoadBackupLocationsFromFile();
 
@@ -59,8 +68,8 @@ namespace Back_It_Up.ViewModels.Windows
                 MenuItems.Add(new NavigationViewItem()
                 {
                     Content = location,
-                    Icon = new SymbolIcon { Symbol = SymbolRegular.Document24 }, // Adjust the icon as needed
-                    Tag = location, // You can use Tag to store additional information, like the backup location
+                    Icon = new SymbolIcon { Symbol = SymbolRegular.Document24 },
+                    Tag = "backup_" + location, // Prefix to distinguish backup items
                     TargetPageType = typeof(Views.Pages.DashboardPage)
                 });
             }

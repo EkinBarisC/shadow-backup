@@ -90,7 +90,7 @@ namespace Back_It_Up.ViewModels.Pages
             BackupStore store = App.GetService<BackupStore>();
             //dataItem.LoadAllContents();
 
-            store.selectedBackup.BackupItems.Add(dataItem);
+            store.SelectedBackup.BackupItems.Add(dataItem);
         }
 
         public void CheckBox_Unchecked(FileSystemItem dataItem)
@@ -98,7 +98,7 @@ namespace Back_It_Up.ViewModels.Pages
             dataItem.SetIsSelectedRecursively(false);
 
             BackupStore store = App.GetService<BackupStore>();
-            store.selectedBackup.BackupItems.Remove(dataItem);
+            store.SelectedBackup.BackupItems.Remove(dataItem);
         }
 
         private void ReturnToSourcePage()

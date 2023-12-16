@@ -44,13 +44,15 @@ namespace Back_It_Up.ViewModels.Pages
         }
         private void OpenDestinationExplorer()
         {
+            BackupStore store = App.GetService<BackupStore>();
+            store.CurrentContext = BackupStore.ExplorerContext.Backup;
             _navigationService.Navigate(typeof(DestinationExplorerPage));
         }
 
         private void PerformBackup()
         {
             BackupStore store = App.GetService<BackupStore>();
-            store.selectedBackup.PerformBackup();
+            store.SelectedBackup.PerformBackup();
         }
 
 

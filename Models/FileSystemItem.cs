@@ -113,7 +113,7 @@ namespace Back_It_Up.Models
             if (this.Parent != null && this.Parent.IsSelected == false)
             {
                 BackupStore store = App.GetService<BackupStore>();
-                store.selectedBackup.BackupItems.Add(this);
+                store.SelectedBackup.BackupItems.Add(this);
             }
         }
 
@@ -122,7 +122,7 @@ namespace Back_It_Up.Models
             this.SetIsSelectedRecursively(false);
 
             BackupStore store = App.GetService<BackupStore>();
-            store.selectedBackup.BackupItems.Remove(this);
+            store.SelectedBackup.BackupItems.Remove(this);
         }
 
         public void SetIsSelectedRecursively(bool isSelected)

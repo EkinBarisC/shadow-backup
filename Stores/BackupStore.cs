@@ -13,7 +13,11 @@ namespace Back_It_Up.Stores
 {
     class BackupStore
     {
-        public Backup selectedBackup = new Backup();
-
+        public Backup SelectedBackup = new Backup();
+        public enum ExplorerContext
+        {
+            Backup, Restore
+        }
+        public ExplorerContext CurrentContext { get; set; }
     }
 }

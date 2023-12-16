@@ -95,8 +95,14 @@ namespace Back_It_Up.ViewModels.Pages
                 }
             }
             BackupStore store = App.GetService<BackupStore>();
-
-            store.selectedBackup.DestinationPath = dataItem.Path;
+            if (store.CurrentContext == BackupStore.ExplorerContext.Restore)
+            {
+                store.SelectedBackup.RestorePath = dataItem.Path;
+            }
+            else if (store.CurrentContext == BackupStore.ExplorerContext.Backup)
+            {
+                store.SelectedBackup.DestinationPath = dataItem.Path;
+            }
         }
 
         public void CheckBox_Unchecked(FileSystemItem dataItem)
@@ -104,10 +110,23 @@ namespace Back_It_Up.ViewModels.Pages
             dataItem.SetIsSelectedRecursively(false);
 
             BackupStore store = App.GetService<BackupStore>();
-            if (store.selectedBackup.DestinationPath == dataItem.Path)
+
+            if (store.CurrentContext == BackupStore.ExplorerContext.Restore)
             {
-                store.selectedBackup.DestinationPath = null;
+                if (store.SelectedBackup.RestorePath == dataItem.Path)
+                {
+                    store.SelectedBackup.RestorePath = null;
+                }
             }
+
+            else if (store.CurrentContext == BackupStore.ExplorerContext.Backup)
+            {
+                if (store.SelectedBackup.DestinationPath == dataItem.Path)
+                {
+                    store.SelectedBackup.DestinationPath = null;
+                }
+            }
+
         }
 
         private void ReturnToSourcePage()

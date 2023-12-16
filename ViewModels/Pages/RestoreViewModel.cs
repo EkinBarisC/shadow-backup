@@ -49,23 +49,25 @@ namespace Back_It_Up.ViewModels.Pages
         }
         private void OpenDestinationExplorer()
         {
+            BackupStore store = App.GetService<BackupStore>();
+            store.CurrentContext = BackupStore.ExplorerContext.Restore;
             _navigationService.Navigate(typeof(DestinationExplorerPage));
         }
-        private void Restore()
+        private async void Restore()
         {
             BackupStore store = App.GetService<BackupStore>();
-            store.selectedBackup.PerformRestore();
+            await store.SelectedBackup.PerformRestore();
         }
 
         private void CheckBoxChecked(FileSystemItem dataItem)
         {
             BackupStore store = App.GetService<BackupStore>();
-            store.selectedBackup.RestoreItems.Add(dataItem);
+            store.SelectedBackup.RestoreItems.Add(dataItem);
         }
         private void CheckBoxUnchecked(FileSystemItem dataItem)
         {
             BackupStore store = App.GetService<BackupStore>();
-            store.selectedBackup.RestoreItems.Remove(dataItem);
+            store.SelectedBackup.RestoreItems.Remove(dataItem);
         }
 
 
@@ -73,7 +75,7 @@ namespace Back_It_Up.ViewModels.Pages
         {
 
             BackupStore store = App.GetService<BackupStore>();
-            store.selectedBackup.Version = backupVersion;
+            store.SelectedBackup.Version = backupVersion;
             string zipFilePath = backupVersion.BackupZipFilePath;
             string metadata = await ReadMetadataFromZip(zipFilePath);
             FileSystemItems = CreateFileSystemItemsFromJson(metadata);
@@ -170,9 +172,9 @@ namespace Back_It_Up.ViewModels.Pages
         public void readManifestFile()
         {
             BackupStore store = App.GetService<BackupStore>();
-            string backupName = store.selectedBackup.BackupName;
+            string backupName = store.SelectedBackup.BackupName;
 
-            string manifestPath = Path.Combine(store.selectedBackup.DestinationPath, backupName, "manifest.json");
+            string manifestPath = Path.Combine(store.SelectedBackup.DestinationPath, backupName, "manifest.json");
             string manifestJson = File.ReadAllText(manifestPath);
             BackupVersions = JsonSerializer.Deserialize<List<BackupVersion>>(manifestJson) ?? new List<BackupVersion>();
         }

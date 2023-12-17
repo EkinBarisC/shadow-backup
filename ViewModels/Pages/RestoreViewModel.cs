@@ -89,6 +89,7 @@ namespace Back_It_Up.ViewModels.Pages
             string zipFilePath = backupVersion.BackupZipFilePath;
             string metadata = await ReadMetadataFromZip(zipFilePath);
             FileSystemItems = CreateFileSystemItemsFromJson(metadata);
+            store.SelectedBackup.BackupItems = FileSystemItems;
 
         }
         private FileSystemItem FindItemByPath(ObservableCollection<FileSystemItem> items, string path)
@@ -183,12 +184,18 @@ namespace Back_It_Up.ViewModels.Pages
         {
             BackupStore store = App.GetService<BackupStore>();
             string backupName = store.SelectedBackup.BackupName;
+            if (!string.IsNullOrEmpty(backupName))
+            {
+                string manifestPath = Path.Combine(store.SelectedBackup.DestinationPath, backupName, "manifest.json");
+                if (File.Exists(manifestPath))
+                {
+                    string manifestJson = File.ReadAllText(manifestPath);
+                    BackupVersions = JsonSerializer.Deserialize<List<BackupVersion>>(manifestJson) ?? new List<BackupVersion>();
+                    store.SelectedBackup.Version = BackupVersions[0];
+                    LoadContents(store.SelectedBackup.Version);
 
-            string manifestPath = Path.Combine(store.SelectedBackup.DestinationPath, backupName, "manifest.json");
-            string manifestJson = File.ReadAllText(manifestPath);
-            BackupVersions = JsonSerializer.Deserialize<List<BackupVersion>>(manifestJson) ?? new List<BackupVersion>();
-            store.SelectedBackup.Version = BackupVersions[0];
-            LoadContents(store.SelectedBackup.Version);
+                }
+            }
         }
 
 

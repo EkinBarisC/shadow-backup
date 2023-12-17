@@ -28,7 +28,7 @@ namespace Back_It_Up.Models
         public string DestinationPath = "C:\\Users\\User\\Documents\\backups";
         public string RestorePath = "C:\\Users\\User\\Documents\\restores";
         public BackupSetting BackupSetting = new BackupSetting();
-        public string BackupName = "nested backup 2";
+        public string BackupName;
         public BackupVersion Version;
 
         public async void PerformBackup()

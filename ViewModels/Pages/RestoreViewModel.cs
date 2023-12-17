@@ -187,6 +187,8 @@ namespace Back_It_Up.ViewModels.Pages
             string manifestPath = Path.Combine(store.SelectedBackup.DestinationPath, backupName, "manifest.json");
             string manifestJson = File.ReadAllText(manifestPath);
             BackupVersions = JsonSerializer.Deserialize<List<BackupVersion>>(manifestJson) ?? new List<BackupVersion>();
+            store.SelectedBackup.Version = BackupVersions[0];
+            LoadContents(store.SelectedBackup.Version);
         }
 
 

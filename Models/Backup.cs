@@ -324,7 +324,9 @@ namespace Back_It_Up.Models
                         }
                         else
                         {
-                            File.AppendAllTextTransacted(kernelTransaction, destinationFilePath, Environment.NewLine + zipPath);
+                            string existingContent = File.ReadAllTextTransacted(kernelTransaction, destinationFilePath);
+                            if (!existingContent.Contains(zipPath))
+                                File.AppendAllTextTransacted(kernelTransaction, destinationFilePath, Environment.NewLine + zipPath);
                         }
 
                         kernelTransaction.Commit();

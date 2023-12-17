@@ -64,5 +64,6 @@ namespace Back_It_Up.Services
 
             navigationWindow.NavigationView.Navigate(typeof(DashboardPage));
         }
+
     }
 }

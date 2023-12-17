@@ -4,6 +4,7 @@
 // All Rights Reserved.
 
 using Alphaleonis.Win32.Filesystem;
+using GalaSoft.MvvmLight.Messaging;
 using System.Collections.ObjectModel;
 using Wpf.Ui.Common;
 using Wpf.Ui.Controls;
@@ -48,8 +49,12 @@ namespace Back_It_Up.ViewModels.Windows
             LoadBackupLocations();
         }
 
+        public void NavigateTo(Type targetType)
+        {
 
-        private void LoadBackupLocations()
+        }
+
+        public void LoadBackupLocations()
         {
             // Clear existing backup-related items from MenuItems
             var backupItems = MenuItems.OfType<NavigationViewItem>()

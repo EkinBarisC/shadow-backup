@@ -3,7 +3,10 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
+using Back_It_Up.Stores;
 using Back_It_Up.ViewModels.Windows;
+using GalaSoft.MvvmLight.Messaging;
+using System.Windows.Controls;
 using Wpf.Ui.Controls;
 
 namespace Back_It_Up.Views.Windows
@@ -24,7 +27,7 @@ namespace Back_It_Up.Views.Windows
 
             ViewModel = viewModel;
             DataContext = this;
-
+            //Messenger.Default.Register<string>(this, OnBackupCreated);
             InitializeComponent();
 
             navigationService.SetNavigationControl(NavigationView);
@@ -32,6 +35,25 @@ namespace Back_It_Up.Views.Windows
             contentDialogService.SetContentPresenter(RootContentDialog);
 
             NavigationView.SetServiceProvider(serviceProvider);
+        }
+
+        private void OnBackupCreated(string backupName)
+        {
+            ViewModel.LoadBackupLocations();
+        }
+
+
+        private void NavigationView_SelectionChanged(NavigationView sender, RoutedEventArgs args)
+        {
+            // Now use this content to determine what to do next
+            if (sender.SelectedItem is NavigationViewItem selectedItem)
+            {
+                BackupStore store = App.GetService<BackupStore>();
+                if (selectedItem.Content != null)
+                    store.SelectedBackup.BackupName = selectedItem.Content.ToString();
+                if (store.SelectedBackup.BackupName != null)
+                    Messenger.Default.Send(store.SelectedBackup.BackupName);
+            }
         }
     }
 }

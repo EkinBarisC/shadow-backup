@@ -17,6 +17,7 @@ using Path = Alphaleonis.Win32.Filesystem.Path;
 using System.Collections.ObjectModel;
 using DirectoryInfo = Alphaleonis.Win32.Filesystem.DirectoryInfo;
 using Back_It_Up.Views.Pages;
+using GalaSoft.MvvmLight.Messaging;
 
 namespace Back_It_Up.ViewModels.Pages
 {
@@ -45,8 +46,17 @@ namespace Back_It_Up.ViewModels.Pages
             CheckBoxUncheckedCommand = new RelayCommand<FileSystemItem>(CheckBoxUnchecked);
             OpenDestinationExplorerCommand = new RelayCommand(OpenDestinationExplorer);
             RestoreCommand = new RelayCommand(Restore);
+            Messenger.Default.Register<string>(this, OnBackupNameChanged);
             readManifestFile();
         }
+
+        private void OnBackupNameChanged(string backupName)
+        {
+            BackupStore store = App.GetService<BackupStore>();
+            store.SelectedBackup.BackupName = backupName;
+            readManifestFile();
+        }
+
         private void OpenDestinationExplorer()
         {
             BackupStore store = App.GetService<BackupStore>();

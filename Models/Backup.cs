@@ -1,6 +1,7 @@
 ﻿using Alphaleonis.Win32.Filesystem;
 using Back_It_Up.Views.Pages;
 using CommunityToolkit.Mvvm.Messaging;
+using GalaSoft.MvvmLight.Messaging;
 using Microsoft.VisualBasic;
 using System;
 using System.Collections.Generic;
@@ -37,6 +38,8 @@ namespace Back_It_Up.Models
             await FullBackup();
             await CreateZipArchive(version);
             await WriteBackupLocation();
+
+            Messenger.Default.Send(BackupName);
         }
 
         public async Task PerformRestore()

@@ -49,11 +49,10 @@ namespace Back_It_Up.ViewModels.Pages
             _navigationService.Navigate(typeof(DestinationExplorerPage));
         }
 
-        private void PerformBackup()
+        private async void PerformBackup()
         {
             BackupStore store = App.GetService<BackupStore>();
-            //store.SelectedBackup.PerformBackup();
-            store.SelectedBackup.PerformIncrementalBackup();
+            await store.SelectedBackup.PerformBackup();
         }
 
 

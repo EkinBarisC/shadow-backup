@@ -32,14 +32,27 @@ namespace Back_It_Up.Models
         public string BackupName;
         public BackupVersion Version;
 
-
-        public async void PerformIncrementalBackup()
+        public async Task PerformBackup()
         {
-            int version = CreateManifest();
-            await CreateMetadata();
+            if (DoesPreviousBackupExist())
+            {
+                await PerformIncrementalBackup();
+            }
+            else
+            {
+                await PerformFullBackup();
+            }
         }
 
-        public async void PerformBackup()
+
+        public async Task PerformIncrementalBackup()
+        {
+
+            //int version = CreateManifest();
+            //await CreateMetadata();
+        }
+
+        public async Task PerformFullBackup()
         {
             int version = CreateManifest();
             await CreateMetadata();
@@ -48,6 +61,25 @@ namespace Back_It_Up.Models
             await WriteBackupLocation();
 
             Messenger.Default.Send(BackupName);
+        }
+
+        public List<MetadataItem> LoadPreviousBackupMetadata()
+        {
+            string metadataFilePath = Path.Combine(DestinationPath, "metadata.json");
+            if (!File.Exists(metadataFilePath))
+            {
+                return new List<MetadataItem>();
+            }
+
+            string metadataJson = File.ReadAllText(metadataFilePath);
+            return JsonSerializer.Deserialize<List<MetadataItem>>(metadataJson) ?? new List<MetadataItem>();
+        }
+
+
+        public bool DoesPreviousBackupExist()
+        {
+            string metadataFilePath = Path.Combine(DestinationPath, "manifest.json");
+            return File.Exists(metadataFilePath);
         }
 
 

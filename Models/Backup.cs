@@ -1,4 +1,5 @@
 ﻿using Alphaleonis.Win32.Filesystem;
+using Back_It_Up.Stores;
 using Back_It_Up.Views.Pages;
 using CommunityToolkit.Mvvm.Messaging;
 using GalaSoft.MvvmLight.Messaging;
@@ -47,9 +48,9 @@ namespace Back_It_Up.Models
 
         public async Task PerformIncrementalBackup()
         {
-
             //int version = CreateManifest();
             //await CreateMetadata();
+            List<MetadataItem> res = await LoadPreviousBackupMetadata();
         }
 
         public async Task PerformFullBackup()
@@ -63,22 +64,69 @@ namespace Back_It_Up.Models
             Messenger.Default.Send(BackupName);
         }
 
-        public List<MetadataItem> LoadPreviousBackupMetadata()
+        public async Task<List<MetadataItem>> LoadPreviousBackupMetadata()
         {
-            string metadataFilePath = Path.Combine(DestinationPath, "metadata.json");
-            if (!File.Exists(metadataFilePath))
+            BackupStore store = App.GetService<BackupStore>();
+            string backupName = store.SelectedBackup.BackupName;
+
+            if (string.IsNullOrEmpty(backupName))
             {
                 return new List<MetadataItem>();
             }
 
-            string metadataJson = File.ReadAllText(metadataFilePath);
+            string manifestPath = Path.Combine(store.SelectedBackup.DestinationPath, backupName, "manifest.json");
+            if (!File.Exists(manifestPath))
+            {
+                return new List<MetadataItem>();
+            }
+
+            string manifestJson = File.ReadAllText(manifestPath);
+            var backupVersions = JsonSerializer.Deserialize<List<BackupVersion>>(manifestJson) ?? new List<BackupVersion>();
+            var latestBackupVersion = backupVersions.OrderByDescending(v => v.DateCreated).FirstOrDefault();
+
+            if (latestBackupVersion == null)
+            {
+                return new List<MetadataItem>();
+            }
+
+            string metadataJson = await ReadMetadataFromZip(latestBackupVersion.BackupZipFilePath);
             return JsonSerializer.Deserialize<List<MetadataItem>>(metadataJson) ?? new List<MetadataItem>();
+        }
+
+        public async Task<string> ReadMetadataFromZip(string zipFilePath)
+        {
+            // Ensure the file exists
+            if (!File.Exists(zipFilePath))
+            {
+                throw new FileNotFoundException("ZIP file not found.", zipFilePath);
+            }
+
+            // Open the ZIP file
+            using (var zipArchive = ZipFile.OpenRead(zipFilePath))
+            {
+                // Find the metadata file
+                var metadataEntry = zipArchive.GetEntry("metadata.json");
+                if (metadataEntry == null)
+                {
+                    throw new FileNotFoundException("Metadata file not found in the ZIP archive.", "metadata.json");
+                }
+
+                // Read the metadata file
+                using (var stream = metadataEntry.Open())
+                {
+                    using (var memoryStream = new MemoryStream())
+                    {
+                        await stream.CopyToAsync(memoryStream);
+                        return Encoding.UTF8.GetString(memoryStream.ToArray());
+                    }
+                }
+            }
         }
 
 
         public bool DoesPreviousBackupExist()
         {
-            string metadataFilePath = Path.Combine(DestinationPath, "manifest.json");
+            string metadataFilePath = Path.Combine(DestinationPath, BackupName, "manifest.json");
             return File.Exists(metadataFilePath);
         }
 

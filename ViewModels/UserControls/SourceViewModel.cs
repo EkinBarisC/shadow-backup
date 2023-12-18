@@ -52,7 +52,8 @@ namespace Back_It_Up.ViewModels.Pages
         private void PerformBackup()
         {
             BackupStore store = App.GetService<BackupStore>();
-            store.SelectedBackup.PerformBackup();
+            //store.SelectedBackup.PerformBackup();
+            store.SelectedBackup.PerformIncrementalBackup();
         }
 
 

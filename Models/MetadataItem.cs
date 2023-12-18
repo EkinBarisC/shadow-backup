@@ -10,7 +10,9 @@ namespace Back_It_Up.Models
     {
         public string Type { get; set; }
         public string Path { get; set; }
-        public string RootPath { get; set; } // Add this property
+        public string RootPath { get; set; }
+
+        public string Checksum { get; set; }
     }
 
 }

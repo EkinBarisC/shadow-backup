@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -31,6 +32,13 @@ namespace Back_It_Up.Models
         public string BackupName;
         public BackupVersion Version;
 
+
+        public async void PerformIncrementalBackup()
+        {
+            int version = CreateManifest();
+            await CreateMetadata();
+        }
+
         public async void PerformBackup()
         {
             int version = CreateManifest();
@@ -41,6 +49,25 @@ namespace Back_It_Up.Models
 
             Messenger.Default.Send(BackupName);
         }
+
+
+        public string CalculateFileChecksum(string filePath)
+        {
+            using (var md5 = MD5.Create())
+            {
+                using (var stream = File.OpenRead(filePath))
+                {
+                    var hash = md5.ComputeHash(stream);
+                    return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+                }
+            }
+        }
+        public bool HasFileChanged(string filePath, string oldChecksum)
+        {
+            string newChecksum = CalculateFileChecksum(filePath);
+            return !newChecksum.Equals(oldChecksum, StringComparison.OrdinalIgnoreCase);
+        }
+
 
         public async Task PerformRestore()
         {
@@ -190,12 +217,14 @@ namespace Back_It_Up.Models
 
         private void AddItemAndChildrenToMetadata(FileSystemItem item, List<MetadataItem> metadataList, string rootPath)
         {
+            var checksum = item.IsFolder ? "" : CalculateFileChecksum(item.Path); // Calculate checksum for files
             string type = item.IsFolder ? "folder" : "file";
             metadataList.Add(new MetadataItem
             {
                 Type = type,
                 Path = item.Path,
-                RootPath = rootPath
+                RootPath = rootPath,
+                Checksum = checksum
             });
 
             if (item.IsFolder)

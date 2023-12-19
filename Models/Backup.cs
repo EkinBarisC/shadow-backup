@@ -50,7 +50,9 @@ namespace Back_It_Up.Models
         {
             //int version = CreateManifest();
             //await CreateMetadata();
+
             List<MetadataItem> res = await LoadPreviousBackupMetadata();
+            List<FileSystemItem> changedFiles = GetChangedFiles(res);
         }
 
         public async Task PerformFullBackup()
@@ -63,6 +65,58 @@ namespace Back_It_Up.Models
 
             Messenger.Default.Send(BackupName);
         }
+
+        public List<FileSystemItem> GetChangedFiles(List<MetadataItem> previousMetadata)
+        {
+            var changedFiles = new List<FileSystemItem>();
+            CheckAndAddChangedFiles(BackupItems, previousMetadata, changedFiles);
+            return changedFiles;
+        }
+
+        private void CheckAndAddChangedFiles(IEnumerable<FileSystemItem> items, List<MetadataItem> previousMetadata, List<FileSystemItem> changedFiles)
+        {
+            foreach (var item in items)
+            {
+                var previousItem = previousMetadata.FirstOrDefault(pm => pm.Path == item.Path);
+                if (previousItem == null || HasFileChanged(item, previousItem))
+                {
+                    changedFiles.Add(item);
+                }
+
+                // Recursively check children if it's a folder
+                if (item.IsFolder)
+                {
+                    CheckAndAddChangedFiles(item.Children, previousMetadata, changedFiles);
+                }
+            }
+        }
+
+        private bool HasFileChanged(FileSystemItem currentItem, MetadataItem previousItem)
+        {
+            if (currentItem.IsFolder)
+            {
+                // Folders are handled recursively; skip processing here.
+                return false;
+            }
+
+            // Compare checksums for files
+            string currentChecksum = CalculateFileChecksum(currentItem.Path);
+            return currentChecksum != previousItem.Checksum;
+        }
+
+
+        public string CalculateFileChecksum(string filePath)
+        {
+            using (var md5 = MD5.Create())
+            {
+                using (var stream = File.OpenRead(filePath))
+                {
+                    var hash = md5.ComputeHash(stream);
+                    return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+                }
+            }
+        }
+
 
         public async Task<List<MetadataItem>> LoadPreviousBackupMetadata()
         {
@@ -131,22 +185,6 @@ namespace Back_It_Up.Models
         }
 
 
-        public string CalculateFileChecksum(string filePath)
-        {
-            using (var md5 = MD5.Create())
-            {
-                using (var stream = File.OpenRead(filePath))
-                {
-                    var hash = md5.ComputeHash(stream);
-                    return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
-                }
-            }
-        }
-        public bool HasFileChanged(string filePath, string oldChecksum)
-        {
-            string newChecksum = CalculateFileChecksum(filePath);
-            return !newChecksum.Equals(oldChecksum, StringComparison.OrdinalIgnoreCase);
-        }
 
 
         public async Task PerformRestore()

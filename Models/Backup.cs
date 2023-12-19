@@ -52,7 +52,7 @@ namespace Back_It_Up.Models
             //await CreateMetadata();
 
             List<MetadataItem> res = await LoadPreviousBackupMetadata();
-            List<FileSystemItem> changedFiles = GetChangedFiles(res);
+            List<FileSystemItem> changedFiles = await GetChangedFiles(res);
         }
 
         public async Task PerformFullBackup()
@@ -66,19 +66,19 @@ namespace Back_It_Up.Models
             Messenger.Default.Send(BackupName);
         }
 
-        public List<FileSystemItem> GetChangedFiles(List<MetadataItem> previousMetadata)
+        public async Task<List<FileSystemItem>> GetChangedFiles(List<MetadataItem> previousMetadata)
         {
             var changedFiles = new List<FileSystemItem>();
-            CheckAndAddChangedFiles(BackupItems, previousMetadata, changedFiles);
+            await CheckAndAddChangedFiles(BackupItems, previousMetadata, changedFiles);
             return changedFiles;
         }
 
-        private void CheckAndAddChangedFiles(IEnumerable<FileSystemItem> items, List<MetadataItem> previousMetadata, List<FileSystemItem> changedFiles)
+        private async Task CheckAndAddChangedFiles(IEnumerable<FileSystemItem> items, List<MetadataItem> previousMetadata, List<FileSystemItem> changedFiles)
         {
             foreach (var item in items)
             {
                 var previousItem = previousMetadata.FirstOrDefault(pm => pm.Path == item.Path);
-                if (previousItem == null || HasFileChanged(item, previousItem))
+                if (previousItem == null || (await HasFileChangedAsync(item, previousItem)))
                 {
                     changedFiles.Add(item);
                 }
@@ -86,12 +86,12 @@ namespace Back_It_Up.Models
                 // Recursively check children if it's a folder
                 if (item.IsFolder)
                 {
-                    CheckAndAddChangedFiles(item.Children, previousMetadata, changedFiles);
+                    await CheckAndAddChangedFiles(item.Children, previousMetadata, changedFiles);
                 }
             }
         }
 
-        private bool HasFileChanged(FileSystemItem currentItem, MetadataItem previousItem)
+        private async Task<bool> HasFileChangedAsync(FileSystemItem currentItem, MetadataItem previousItem)
         {
             if (currentItem.IsFolder)
             {
@@ -100,23 +100,28 @@ namespace Back_It_Up.Models
             }
 
             // Compare checksums for files
-            string currentChecksum = CalculateFileChecksum(currentItem.Path);
+            string currentChecksum = await CalculateFileChecksum(currentItem.Path);
             return currentChecksum != previousItem.Checksum;
         }
 
-
-        public string CalculateFileChecksum(string filePath)
+        public async Task<string> CalculateFileChecksum(string filePath)
         {
-            using (var md5 = MD5.Create())
+            using (VssBackup vss = new VssBackup())
             {
-                using (var stream = File.OpenRead(filePath))
+                vss.Setup(Path.GetPathRoot(filePath));
+                string snap_path = vss.GetSnapshotPath(filePath);
+                using (var md5 = MD5.Create())
                 {
-                    var hash = md5.ComputeHash(stream);
-                    return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+                    // Open the file asynchronously with AlphaFS
+                    using (var stream = File.Open(snap_path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous))
+                    {
+                        // Read and compute the hash asynchronously
+                        var hash = await md5.ComputeHashAsync(stream);
+                        return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+                    }
                 }
             }
         }
-
 
         public async Task<List<MetadataItem>> LoadPreviousBackupMetadata()
         {
@@ -183,9 +188,6 @@ namespace Back_It_Up.Models
             string metadataFilePath = Path.Combine(DestinationPath, BackupName, "manifest.json");
             return File.Exists(metadataFilePath);
         }
-
-
-
 
         public async Task PerformRestore()
         {
@@ -333,9 +335,9 @@ namespace Back_It_Up.Models
         }
 
 
-        private void AddItemAndChildrenToMetadata(FileSystemItem item, List<MetadataItem> metadataList, string rootPath)
+        private async void AddItemAndChildrenToMetadata(FileSystemItem item, List<MetadataItem> metadataList, string rootPath)
         {
-            var checksum = item.IsFolder ? "" : CalculateFileChecksum(item.Path); // Calculate checksum for files
+            var checksum = item.IsFolder ? "" : await CalculateFileChecksum(item.Path); // Calculate checksum for files
             string type = item.IsFolder ? "folder" : "file";
             metadataList.Add(new MetadataItem
             {

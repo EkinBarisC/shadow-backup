@@ -16,6 +16,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Transactions;
+using System.Windows.Media.Animation;
 using Directory = Alphaleonis.Win32.Filesystem.Directory;
 using File = Alphaleonis.Win32.Filesystem.File;
 using Path = Alphaleonis.Win32.Filesystem.Path;
@@ -48,12 +49,18 @@ namespace Back_It_Up.Models
 
         public async Task PerformIncrementalBackup()
         {
-            //int version = CreateManifest();
-            //await CreateMetadata();
-
             List<MetadataItem> res = await LoadPreviousBackupMetadata();
             List<FileSystemItem> changedFiles = await GetChangedFiles(res);
+            if (!changedFiles.Any())
+            {
+                Console.WriteLine("No changes detected. Incremental backup is not required.");
+                return;
+            }
+
+            int version = await ReadManifestFileAsync();
+
         }
+
 
         public async Task PerformFullBackup()
         {
@@ -64,6 +71,28 @@ namespace Back_It_Up.Models
             await WriteBackupLocation();
 
             Messenger.Default.Send(BackupName);
+        }
+
+        public async Task<int> ReadManifestFileAsync()
+        {
+            string manifestPath = Path.Combine(DestinationPath, BackupName, "manifest.json");
+            if (File.Exists(manifestPath))
+            {
+                using (FileStream fileStream = new FileStream(manifestPath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true))
+                using (StreamReader reader = new StreamReader(fileStream))
+                {
+                    string manifestJson = await reader.ReadToEndAsync();
+                    List<BackupVersion> BackupVersions = JsonSerializer.Deserialize<List<BackupVersion>>(manifestJson) ?? new List<BackupVersion>();
+
+                    if (BackupVersions.Count > 0)
+                    {
+                        //Version = BackupVersions.Last();
+                        return BackupVersions.Last().Version;
+                    }
+                }
+            }
+
+            return -1;
         }
 
         public async Task<List<FileSystemItem>> GetChangedFiles(List<MetadataItem> previousMetadata)

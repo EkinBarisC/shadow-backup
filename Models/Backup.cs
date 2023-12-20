@@ -4,6 +4,7 @@ using Back_It_Up.Views.Pages;
 using CommunityToolkit.Mvvm.Messaging;
 using GalaSoft.MvvmLight.Messaging;
 using Microsoft.VisualBasic;
+using Octodiff.Core;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -57,10 +58,56 @@ namespace Back_It_Up.Models
                 return;
             }
 
-            int version = await ReadManifestFileAsync();
+            BackupVersion version = await ReadManifestFileAsync();
+
+            foreach (var file in changedFiles)
+            {
+                // Generate patch file
+                string patchFilePath = await ExtractBackupFileAndGetPath(file, version);
+                // Optionally, you can add logic to save patch file paths in metadata
+            }
 
         }
 
+        private async Task<string> ExtractBackupFileAndGetPath(FileSystemItem file, BackupVersion version)
+        {
+            string zipFilePath = version.BackupZipFilePath;
+            string extractedFilePath = "";
+
+            // Define a temporary directory within the backup directory
+            string tempDirectoryPath = Path.Combine(DestinationPath, BackupName, "temp");
+            if (!Directory.Exists(tempDirectoryPath))
+            {
+                Directory.CreateDirectory(tempDirectoryPath);
+            }
+
+            using (ZipArchive archive = ZipFile.OpenRead(zipFilePath))
+            {
+                ZipArchiveEntry metadataEntry = archive.GetEntry("metadata.json");
+                using (var reader = new StreamReader(metadataEntry.Open()))
+                {
+                    string metadataJson = await reader.ReadToEndAsync();
+                    var metadataItems = JsonSerializer.Deserialize<List<MetadataItem>>(metadataJson);
+
+                    var item = metadataItems.FirstOrDefault(m => m.Path == file.Path && m.Type == "file");
+                    if (item != null)
+                    {
+                        string entryName = GetEntryNameFromMetadata(item);
+                        var zipEntry = archive.GetEntry(entryName);
+
+                        if (zipEntry != null)
+                        {
+                            string fullExtractPath = Path.Combine(tempDirectoryPath, Path.GetFileName(file.Path));
+
+                            zipEntry.ExtractToFile(fullExtractPath, overwrite: true); // Extract the file
+                            extractedFilePath = fullExtractPath; // Set the extracted file path
+                        }
+                    }
+                }
+            }
+
+            return extractedFilePath; // Return the path of the extracted file
+        }
 
         public async Task PerformFullBackup()
         {
@@ -73,7 +120,7 @@ namespace Back_It_Up.Models
             Messenger.Default.Send(BackupName);
         }
 
-        public async Task<int> ReadManifestFileAsync()
+        public async Task<BackupVersion> ReadManifestFileAsync()
         {
             string manifestPath = Path.Combine(DestinationPath, BackupName, "manifest.json");
             if (File.Exists(manifestPath))
@@ -87,12 +134,12 @@ namespace Back_It_Up.Models
                     if (BackupVersions.Count > 0)
                     {
                         //Version = BackupVersions.Last();
-                        return BackupVersions.Last().Version;
+                        return BackupVersions.Last();
                     }
                 }
             }
 
-            return -1;
+            return null;
         }
 
         public async Task<List<FileSystemItem>> GetChangedFiles(List<MetadataItem> previousMetadata)

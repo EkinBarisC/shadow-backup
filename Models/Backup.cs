@@ -71,7 +71,52 @@ namespace Back_It_Up.Models
                 await GeneratePatchUsingOctodiffAsync(tempFilePath, changedFilePath, patchFilePath);
             }
 
+            await CreateIncrementalBackupZipAndCleanup(changedFiles);
+
         }
+
+        public async Task CreateIncrementalBackupZipAndCleanup(List<FileSystemItem> changedFiles)
+        {
+
+            await UpdateManifestFileAsync();
+
+
+        }
+
+        public async Task UpdateManifestFileAsync()
+        {
+            string manifestPath = Path.Combine(DestinationPath, BackupName, "manifest.json");
+            List<BackupVersion> backupVersions;
+
+            // Check if the manifest file exists and read it
+            if (File.Exists(manifestPath))
+            {
+                string manifestJson = await System.IO.File.ReadAllTextAsync(manifestPath);
+                backupVersions = JsonSerializer.Deserialize<List<BackupVersion>>(manifestJson) ?? new List<BackupVersion>();
+            }
+            else
+            {
+                backupVersions = new List<BackupVersion>();
+            }
+
+            // Calculate the next version number
+            int nextVersionNumber = backupVersions.Any() ? backupVersions.Max(v => v.Version) + 1 : 1;
+
+            // Add a new entry for the current backup version
+            BackupVersion newVersion = new BackupVersion
+            {
+                Version = nextVersionNumber,
+                DateCreated = DateTime.Now,
+                BackupZipFilePath = Path.Combine(DestinationPath, BackupName, $"v{nextVersionNumber}.zip")
+            };
+
+            backupVersions.Add(newVersion);
+
+            // Serialize and write the updated manifest back to the file
+            string updatedManifestJson = JsonSerializer.Serialize(backupVersions, new JsonSerializerOptions { WriteIndented = true });
+            await System.IO.File.WriteAllTextAsync(manifestPath, updatedManifestJson);
+        }
+
 
         public async Task GeneratePatchUsingOctodiffAsync(string originalFilePath, string modifiedFilePath, string patchFilePath)
         {
@@ -102,7 +147,6 @@ namespace Back_It_Up.Models
             // Clean up: delete the signature file
             File.Delete(patchFilePath + ".sig");
         }
-
 
         private async Task<string> ExtractBackupFileAndGetPath(FileSystemItem file, BackupVersion version)
         {
@@ -236,15 +280,13 @@ namespace Back_It_Up.Models
 
         public async Task<List<MetadataItem>> LoadPreviousBackupMetadata()
         {
-            BackupStore store = App.GetService<BackupStore>();
-            string backupName = store.SelectedBackup.BackupName;
 
-            if (string.IsNullOrEmpty(backupName))
+            if (string.IsNullOrEmpty(BackupName))
             {
                 return new List<MetadataItem>();
             }
 
-            string manifestPath = Path.Combine(store.SelectedBackup.DestinationPath, backupName, "manifest.json");
+            string manifestPath = Path.Combine(DestinationPath, BackupName, "manifest.json");
             if (!File.Exists(manifestPath))
             {
                 return new List<MetadataItem>();

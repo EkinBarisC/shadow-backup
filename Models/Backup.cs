@@ -78,12 +78,65 @@ namespace Back_It_Up.Models
         public async Task CreateIncrementalBackupZipAndCleanup(List<FileSystemItem> changedFiles)
         {
             //here
-            await UpdateManifestFileAsync();
+            int version = await UpdateManifestFileAsync();
             await CreateIncrementalMetadata(changedFiles);
-
+            await CreateIncrementalBackupZip(changedFiles, version);
+            await CleanupAfterBackupAsync();
         }
 
-        public async Task UpdateManifestFileAsync()
+        public async Task CreateIncrementalBackupZip(List<FileSystemItem> changedFiles, int version)
+        {
+            await Task.Run(() =>
+            {
+                string backupDestinationFolder = Path.Combine(DestinationPath, BackupName);
+                string zipPath = Path.Combine(backupDestinationFolder, "v" + version + ".zip");
+
+                using (ZipArchive zipArchive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+                {
+                    // Add patch files to the ZIP archive
+                    foreach (var file in changedFiles)
+                    {
+                        string patchFilePath = Path.Combine(DestinationPath, BackupName, "Contents", file.Name + ".octopatch");
+                        if (File.Exists(patchFilePath))
+                        {
+                            zipArchive.CreateEntryFromFile(patchFilePath, Path.GetFileName(patchFilePath));
+                        }
+                    }
+
+                    // Add metadata file to the ZIP archive
+                    string metadataFilePath = Path.Combine(DestinationPath, BackupName, "Contents", "metadata.json");
+                    if (File.Exists(metadataFilePath))
+                    {
+                        zipArchive.CreateEntryFromFile(metadataFilePath, "metadata.json");
+                    }
+                }
+
+
+            });
+        }
+
+        private async Task CleanupAfterBackupAsync()
+        {
+            string backupRootPath = Path.Combine(DestinationPath, BackupName);
+            string contentsFolderPath = Path.Combine(backupRootPath, "Contents");
+            string tempFolderPath = Path.Combine(backupRootPath, "temp");
+
+            await Task.Run(() =>
+            {
+                if (Directory.Exists(contentsFolderPath))
+                {
+                    Directory.Delete(contentsFolderPath, true);
+                }
+
+                if (Directory.Exists(tempFolderPath))
+                {
+                    Directory.Delete(tempFolderPath, true);
+                }
+            });
+        }
+
+
+        public async Task<int> UpdateManifestFileAsync()
         {
             string manifestPath = Path.Combine(DestinationPath, BackupName, "manifest.json");
             List<BackupVersion> backupVersions;
@@ -115,6 +168,7 @@ namespace Back_It_Up.Models
             // Serialize and write the updated manifest back to the file
             string updatedManifestJson = JsonSerializer.Serialize(backupVersions, new JsonSerializerOptions { WriteIndented = true });
             await System.IO.File.WriteAllTextAsync(manifestPath, updatedManifestJson);
+            return nextVersionNumber;
         }
 
 

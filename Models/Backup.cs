@@ -66,7 +66,7 @@ namespace Back_It_Up.Models
                 // extract backup file to temp and get it's path
                 string tempFilePath = await ExtractBackupFileAndGetPath(file, version);
                 string changedFilePath = file.Path;
-                string patchFilePath = Path.Combine(DestinationPath, BackupName, "patches", file.Name + ".octopatch"); // Path where the patch file will be saved
+                string patchFilePath = Path.Combine(DestinationPath, BackupName, "Contents", file.Name + ".octopatch"); // Path where the patch file will be saved
 
                 await GeneratePatchUsingOctodiffAsync(tempFilePath, changedFilePath, patchFilePath);
             }
@@ -77,9 +77,9 @@ namespace Back_It_Up.Models
 
         public async Task CreateIncrementalBackupZipAndCleanup(List<FileSystemItem> changedFiles)
         {
-
+            //here
             await UpdateManifestFileAsync();
-
+            await CreateIncrementalMetadata(changedFiles);
 
         }
 
@@ -446,6 +446,41 @@ namespace Back_It_Up.Models
             return version;
         }
 
+        public async Task CreateIncrementalMetadata(List<FileSystemItem> changedFiles)
+        {
+            List<MetadataItem> metadataList = new List<MetadataItem>();
+
+            foreach (FileSystemItem changedFile in changedFiles)
+            {
+                await AddItemAndChildrenToMetadata(changedFile, metadataList, changedFile.Path);
+            }
+
+            string metadataJson = JsonSerializer.Serialize(metadataList, new JsonSerializerOptions
+            {
+                WriteIndented = true
+            });
+
+            using KernelTransaction kernelTransaction = new KernelTransaction();
+            {
+                try
+                {
+                    await Task.Run(() =>
+                    {
+                        string backupNameFolderPath = Path.Combine(DestinationPath, BackupName, "Contents");
+                        string metadataFilePath = Path.Combine(backupNameFolderPath, "metadata.json");
+                        Directory.CreateDirectoryTransacted(kernelTransaction, backupNameFolderPath);
+                        File.WriteAllTextTransacted(kernelTransaction, metadataFilePath, metadataJson);
+
+                        kernelTransaction.Commit();
+                    });
+                }
+                catch (Exception)
+                {
+                    kernelTransaction.Rollback();
+                }
+            }
+        }
+
 
         public async Task CreateMetadata()
         {
@@ -483,7 +518,7 @@ namespace Back_It_Up.Models
         }
 
 
-        private async void AddItemAndChildrenToMetadata(FileSystemItem item, List<MetadataItem> metadataList, string rootPath)
+        private async Task AddItemAndChildrenToMetadata(FileSystemItem item, List<MetadataItem> metadataList, string rootPath)
         {
             var checksum = item.IsFolder ? "" : await CalculateFileChecksum(item.Path); // Calculate checksum for files
             string type = item.IsFolder ? "folder" : "file";
@@ -499,7 +534,7 @@ namespace Back_It_Up.Models
             {
                 foreach (var child in item.Children)
                 {
-                    AddItemAndChildrenToMetadata(child, metadataList, rootPath);
+                    await AddItemAndChildrenToMetadata(child, metadataList, rootPath);
                 }
             }
         }

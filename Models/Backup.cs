@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Messaging;
 using GalaSoft.MvvmLight.Messaging;
 using Microsoft.VisualBasic;
 using Octodiff.Core;
+using Octodiff.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -62,12 +63,46 @@ namespace Back_It_Up.Models
 
             foreach (var file in changedFiles)
             {
-                // Generate patch file
-                string patchFilePath = await ExtractBackupFileAndGetPath(file, version);
-                // Optionally, you can add logic to save patch file paths in metadata
+                // extract backup file to temp and get it's path
+                string tempFilePath = await ExtractBackupFileAndGetPath(file, version);
+                string changedFilePath = file.Path;
+                string patchFilePath = Path.Combine(DestinationPath, BackupName, "patches", file.Name + ".octopatch"); // Path where the patch file will be saved
+
+                await GeneratePatchUsingOctodiffAsync(tempFilePath, changedFilePath, patchFilePath);
             }
 
         }
+
+        public async Task GeneratePatchUsingOctodiffAsync(string originalFilePath, string modifiedFilePath, string patchFilePath)
+        {
+            // Ensure the output directory for the patch file exists
+            var patchFileDirectory = Path.GetDirectoryName(patchFilePath);
+            if (!Directory.Exists(patchFileDirectory))
+            {
+                Directory.CreateDirectory(patchFileDirectory);
+            }
+
+            // Create signature of the original file
+            var signatureBuilder = new SignatureBuilder();
+            using (var basisStream = new FileStream(originalFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (var signatureStream = new FileStream(patchFilePath + ".sig", FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                signatureBuilder.Build(basisStream, new SignatureWriter(signatureStream));
+            }
+
+            // Generate patch
+            var deltaBuilder = new DeltaBuilder();
+            using (var newFileStream = new FileStream(modifiedFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (var signatureFileStream = new FileStream(patchFilePath + ".sig", FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (var deltaStream = new FileStream(patchFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                deltaBuilder.BuildDelta(newFileStream, new SignatureReader(signatureFileStream, new ConsoleProgressReporter()), new AggregateCopyOperationsDecorator(new BinaryDeltaWriter(deltaStream)));
+            }
+
+            // Clean up: delete the signature file
+            File.Delete(patchFilePath + ".sig");
+        }
+
 
         private async Task<string> ExtractBackupFileAndGetPath(FileSystemItem file, BackupVersion version)
         {

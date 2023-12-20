@@ -204,17 +204,12 @@ namespace Back_It_Up.Models
             string manifestPath = Path.Combine(DestinationPath, BackupName, "manifest.json");
             if (File.Exists(manifestPath))
             {
-                using (FileStream fileStream = new FileStream(manifestPath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true))
-                using (StreamReader reader = new StreamReader(fileStream))
-                {
-                    string manifestJson = await reader.ReadToEndAsync();
-                    List<BackupVersion> BackupVersions = JsonSerializer.Deserialize<List<BackupVersion>>(manifestJson) ?? new List<BackupVersion>();
+                string manifestJson = await System.IO.File.ReadAllTextAsync(manifestPath);
+                List<BackupVersion> BackupVersions = JsonSerializer.Deserialize<List<BackupVersion>>(manifestJson) ?? new List<BackupVersion>();
 
-                    if (BackupVersions.Count > 0)
-                    {
-                        //Version = BackupVersions.Last();
-                        return BackupVersions.Last();
-                    }
+                if (BackupVersions.Count > 0)
+                {
+                    return BackupVersions.Last();
                 }
             }
 

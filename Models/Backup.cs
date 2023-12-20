@@ -488,7 +488,7 @@ namespace Back_It_Up.Models
 
             foreach (FileSystemItem backupItem in BackupItems)
             {
-                AddItemAndChildrenToMetadata(backupItem, metadataList, backupItem.Path);
+                await AddItemAndChildrenToMetadata(backupItem, metadataList, backupItem.Path);
             }
 
             string metadataJson = JsonSerializer.Serialize(metadataList, new JsonSerializerOptions

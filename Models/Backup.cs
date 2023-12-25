@@ -922,9 +922,9 @@ namespace Back_It_Up.Models
             int index = backupLocations.FindIndex(x => x == BackupName);
             if (index != -1)
             {
-                DestinationPath = locations[index];
+                DestinationPath = Path.GetDirectoryName(locations[index]);
+                readManifestFile(DestinationPath);
             }
-
         }
 
     }

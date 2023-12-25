@@ -33,6 +33,7 @@ namespace Back_It_Up.Models
         public string RestorePath;
         public BackupSetting BackupSetting = new BackupSetting();
         public string BackupName;
+        private List<BackupVersion> BackupVersions;
         public BackupVersion Version;
 
         public async Task PerformBackup()
@@ -165,7 +166,7 @@ namespace Back_It_Up.Models
 
         public async Task CreateIncrementalBackupZipAndCleanup(List<FileSystemItem> changedFiles)
         {
-            //here
+
             int version = await UpdateManifestFileAsync();
             await CreateIncrementalMetadata(changedFiles);
             await CreateIncrementalBackupZip(changedFiles, version);
@@ -292,7 +293,8 @@ namespace Back_It_Up.Models
 
         private async Task<string> ExtractBackupFileAndGetPath(FileSystemItem file, BackupVersion version)
         {
-            string zipFilePath = version.BackupZipFilePath;
+            //here
+            string zipFilePath = BackupVersions[0].BackupZipFilePath;
             string extractedFilePath = "";
 
             // Define a temporary directory within the backup directory
@@ -876,7 +878,7 @@ namespace Back_It_Up.Models
                 if (File.Exists(manifestPath))
                 {
                     string manifestJson = File.ReadAllText(manifestPath);
-                    List<BackupVersion> BackupVersions = JsonSerializer.Deserialize<List<BackupVersion>>(manifestJson) ?? new List<BackupVersion>();
+                    BackupVersions = JsonSerializer.Deserialize<List<BackupVersion>>(manifestJson) ?? new List<BackupVersion>();
                     store.SelectedBackup.Version = BackupVersions[0];
                     LoadContents(store.SelectedBackup.Version);
                 }

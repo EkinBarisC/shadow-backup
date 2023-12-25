@@ -27,11 +27,10 @@ namespace Back_It_Up.Models
 {
     class Backup
     {
-        //TODO: remove defaults
         public ObservableCollection<FileSystemItem> BackupItems = new ObservableCollection<FileSystemItem>();
         public ObservableCollection<FileSystemItem> RestoreItems = new ObservableCollection<FileSystemItem>();
-        public string DestinationPath = "C:\\Users\\User\\Documents\\backups";
-        public string RestorePath = "C:\\Users\\User\\Documents\\restores";
+        public string DestinationPath;
+        public string RestorePath;
         public BackupSetting BackupSetting = new BackupSetting();
         public string BackupName;
         public BackupVersion Version;
@@ -59,7 +58,8 @@ namespace Back_It_Up.Models
                 return;
             }
 
-            BackupVersion version = await ReadManifestFileAsync();
+            List<BackupVersion> versions = await ReadManifestFileAsync();
+            BackupVersion version = versions.Last();
 
             foreach (var file in changedFiles)
             {
@@ -74,6 +74,94 @@ namespace Back_It_Up.Models
             await CreateIncrementalBackupZipAndCleanup(changedFiles);
 
         }
+
+        public async Task RestoreIncrementalBackup()
+        {
+            List<BackupVersion> backupVersions = await ReadManifestFileAsync();
+
+            string restoreDirectory = Path.Combine(RestorePath, BackupName);
+            if (!Directory.Exists(restoreDirectory))
+            {
+                Directory.CreateDirectory(restoreDirectory);
+            }
+
+            foreach (var version in backupVersions)
+            {
+                string zipFilePath = version.BackupZipFilePath;
+
+                if (version == backupVersions.First())
+                {
+                    // This is the full backup. Extract it.
+                    ExtractZipFileToDirectory(zipFilePath, restoreDirectory);
+                }
+                else
+                {
+                    // This is an incremental backup. Apply patches.
+                    await ApplyPatchesFromIncrementalBackup(zipFilePath, restoreDirectory);
+                }
+            }
+        }
+
+        private void ExtractZipFileToDirectory(string zipFilePath, string extractPath)
+        {
+            using (ZipArchive archive = ZipFile.OpenRead(zipFilePath))
+            {
+                foreach (ZipArchiveEntry entry in archive.Entries)
+                {
+                    string completeFilePath = Path.Combine(extractPath, entry.FullName);
+                    string directoryPath = Path.GetDirectoryName(completeFilePath);
+
+                    if (!Directory.Exists(directoryPath))
+                    {
+                        Directory.CreateDirectory(directoryPath);
+                    }
+
+                    entry.ExtractToFile(completeFilePath, true);
+                }
+            }
+        }
+
+        private async Task ApplyPatchesFromIncrementalBackup(string zipFilePath, string restoreDirectory)
+        {
+            using (ZipArchive archive = ZipFile.OpenRead(zipFilePath))
+            {
+                foreach (ZipArchiveEntry patchEntry in archive.Entries)
+                {
+                    // Assuming patch files are named after the original files with an additional extension
+                    string originalFileName = Path.GetFileNameWithoutExtension(patchEntry.FullName);
+                    string originalFilePath = Path.Combine(restoreDirectory, originalFileName);
+                    string patchFilePath = Path.Combine(restoreDirectory, patchEntry.FullName);
+
+                    // Extract the patch file temporarily
+                    patchEntry.ExtractToFile(patchFilePath, overwrite: true);
+
+                    // Apply the patch
+                    await ApplyPatchToFile(originalFilePath, patchFilePath);
+
+                    // Delete the extracted patch file after applying
+                    File.Delete(patchFilePath);
+                }
+            }
+        }
+
+        private async Task ApplyPatchToFile(string originalFilePath, string patchFilePath)
+        {
+            // The file path for the new file generated after applying the patch
+            string newFilePath = originalFilePath + ".new";
+
+            using (FileStream basisStream = new FileStream(originalFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (FileStream deltaStream = new FileStream(patchFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (FileStream newFileStream = new FileStream(newFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                var deltaApplier = new DeltaApplier { SkipHashCheck = false };
+                deltaApplier.Apply(basisStream, new BinaryDeltaReader(deltaStream, new ConsoleProgressReporter()), newFileStream);
+            }
+
+            // Replace the original file with the new file
+            File.Delete(originalFilePath);
+            File.Move(newFilePath, originalFilePath);
+        }
+
 
         public async Task CreateIncrementalBackupZipAndCleanup(List<FileSystemItem> changedFiles)
         {
@@ -253,7 +341,7 @@ namespace Back_It_Up.Models
             Messenger.Default.Send(BackupName);
         }
 
-        public async Task<BackupVersion> ReadManifestFileAsync()
+        public async Task<List<BackupVersion>> ReadManifestFileAsync()
         {
             string manifestPath = Path.Combine(DestinationPath, BackupName, "manifest.json");
             if (File.Exists(manifestPath))
@@ -263,7 +351,7 @@ namespace Back_It_Up.Models
 
                 if (BackupVersions.Count > 0)
                 {
-                    return BackupVersions.Last();
+                    return BackupVersions;
                 }
             }
 
@@ -697,7 +785,7 @@ namespace Back_It_Up.Models
                 {
                     await Task.Run(() =>
                     {
-                        string zipPath = Path.Combine(DestinationPath, BackupName + ".zip");
+                        string zipPath = Path.Combine(DestinationPath, BackupName);
                         string appDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BackItUp");
                         string destinationFilePath = Path.Combine(appDataFolder, "backup_locations.txt");
 
@@ -723,6 +811,120 @@ namespace Back_It_Up.Models
                     kernelTransaction.Rollback();
                 }
             }
+        }
+
+        public string[] LoadBackupLocationsFromFile()
+        {
+
+            string appDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BackItUp");
+            string backupLocationPath = Path.Combine(appDataFolder, "backup_locations.txt");
+
+            using KernelTransaction kernelTransaction = new KernelTransaction();
+            string backupPaths = File.ReadAllTextTransacted(kernelTransaction, backupLocationPath);
+            string[] backupPathsArray = backupPaths.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+            return backupPathsArray;
+        }
+
+
+
+        public ObservableCollection<FileSystemItem> CreateFileSystemItemsFromJson(string json)
+        {
+            var backupItems = JsonSerializer.Deserialize<List<BackupItem>>(json);
+            var fileSystemItems = new ObservableCollection<FileSystemItem>();
+
+            if (backupItems == null)
+                return fileSystemItems;
+
+            // Process the backup items
+            foreach (var item in backupItems)
+            {
+                if (item.Path != null && Path.GetFileName(item.Path) != "metadata.json")
+                {
+                    var fileSystemItem = new FileSystemItem
+                    {
+                        Path = item.Path,
+                        Name = System.IO.Path.GetFileName(item.Path),
+                        IsFolder = item.Type == "folder",
+                        // Other properties can be set as needed
+                    };
+
+                    // Add to the parent's children or directly to the fileSystemItems
+                    var parentDir = System.IO.Path.GetDirectoryName(item.Path);
+                    var parentItem = FindItemByPath(fileSystemItems, parentDir);
+                    if (parentItem != null)
+                    {
+                        parentItem.Children.Add(fileSystemItem);
+                    }
+                    else
+                    {
+                        fileSystemItems.Add(fileSystemItem);
+                    }
+                }
+            }
+
+            return fileSystemItems;
+        }
+
+
+        public void readManifestFile(string backupPath)
+        {
+            BackupStore store = App.GetService<BackupStore>();
+            string backupName = store.SelectedBackup.BackupName;
+            if (!string.IsNullOrEmpty(backupName))
+            {
+                string manifestPath = Path.Combine(store.SelectedBackup.DestinationPath, backupName, "manifest.json");
+                if (File.Exists(manifestPath))
+                {
+                    string manifestJson = File.ReadAllText(manifestPath);
+                    List<BackupVersion> BackupVersions = JsonSerializer.Deserialize<List<BackupVersion>>(manifestJson) ?? new List<BackupVersion>();
+                    store.SelectedBackup.Version = BackupVersions[0];
+                    LoadContents(store.SelectedBackup.Version);
+                }
+            }
+        }
+
+        private async void LoadContents(BackupVersion backupVersion)
+        {
+            Version = backupVersion;
+            string zipFilePath = backupVersion.BackupZipFilePath;
+            string metadata = await ReadMetadataFromZip(zipFilePath);
+            ObservableCollection<FileSystemItem> FileSystemItems = CreateFileSystemItemsFromJson(metadata);
+            // TODO: or restore items?
+            BackupItems = FileSystemItems;
+        }
+
+        private FileSystemItem FindItemByPath(ObservableCollection<FileSystemItem> items, string path)
+        {
+            foreach (var item in items)
+            {
+                if (item.Path == path)
+                {
+                    return item;
+                }
+
+                var foundItem = FindItemByPath(item.Children, path);
+                if (foundItem != null)
+                {
+                    return foundItem;
+                }
+            }
+
+            return null;
+        }
+
+        public void LoadBackup()
+        {
+            string[] locations = LoadBackupLocationsFromFile();
+            List<string> backupNames = locations.Select(path => Path.GetFileNameWithoutExtension(path)).ToList();
+            List<string> backupLocations = backupNames.ToList();
+
+            //check if BackupName is in backupNames if so use index to return location from locations
+            int index = backupLocations.FindIndex(x => x == BackupName);
+            if (index != -1)
+            {
+                DestinationPath = locations[index];
+            }
+
         }
 
     }

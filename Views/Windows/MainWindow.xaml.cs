@@ -50,9 +50,10 @@ namespace Back_It_Up.Views.Windows
             {
                 BackupStore store = App.GetService<BackupStore>();
                 if (selectedItem.Content != null)
+                {
                     store.SelectedBackup.BackupName = selectedItem.Content.ToString();
-                if (store.SelectedBackup.BackupName != null)
-                    Messenger.Default.Send(store.SelectedBackup.BackupName);
+                    store.SelectedBackup.LoadBackup();
+                }
             }
         }
     }

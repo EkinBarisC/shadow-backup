@@ -4,6 +4,7 @@
 // All Rights Reserved.
 
 using Alphaleonis.Win32.Filesystem;
+using Back_It_Up.Stores;
 using GalaSoft.MvvmLight.Messaging;
 using System.Collections.ObjectModel;
 using Wpf.Ui.Common;
@@ -64,9 +65,11 @@ namespace Back_It_Up.ViewModels.Windows
             {
                 MenuItems.Remove(item);
             }
-
+            BackupStore store = App.GetService<BackupStore>();
             // Load backup locations from the file or any other storage mechanism
-            List<string> backupLocations = LoadBackupLocationsFromFile();
+            string[] backupPathsArray = store.SelectedBackup.LoadBackupLocationsFromFile();
+            List<string> backupNames = backupPathsArray.Select(path => Path.GetFileNameWithoutExtension(path)).ToList();
+            List<string> backupLocations = backupNames.ToList();
 
             foreach (var location in backupLocations)
             {
@@ -80,20 +83,7 @@ namespace Back_It_Up.ViewModels.Windows
             }
         }
 
-        private List<string> LoadBackupLocationsFromFile()
-        {
 
-            string appDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BackItUp");
-            string backupLocationPath = Path.Combine(appDataFolder, "backup_locations.txt");
-
-            using KernelTransaction kernelTransaction = new KernelTransaction();
-            string backupPaths = File.ReadAllTextTransacted(kernelTransaction, backupLocationPath);
-            string[] backupPathsArray = backupPaths.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
-            List<string> backupNames = backupPathsArray.Select(path => Path.GetFileNameWithoutExtension(path)).ToList();
-
-            return backupNames.ToList();
-
-        }
 
     }
 }

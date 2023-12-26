@@ -38,8 +38,13 @@ namespace Back_It_Up.Models
 
         public async Task PerformBackup()
         {
+            LoadBackup();
             if (DoesPreviousBackupExist())
             {
+                if (BackupVersions.Count >= 2)
+                {
+                    await RestoreIncrementalBackup("backup");
+                }
                 await PerformIncrementalBackup();
             }
             else
@@ -76,21 +81,24 @@ namespace Back_It_Up.Models
 
         }
 
-        public async Task RestoreIncrementalBackup()
+        public async Task RestoreIncrementalBackup(string reason)
         {
-            List<BackupVersion> backupVersions = await ReadManifestFileAsync();
+            string restoreDirectory;
+            if (reason == "restore")
+                restoreDirectory = Path.Combine(RestorePath, BackupName);
+            else
+                restoreDirectory = Path.Combine(DestinationPath, BackupName, "Contents");
 
-            string restoreDirectory = Path.Combine(RestorePath, BackupName);
             if (!Directory.Exists(restoreDirectory))
             {
                 Directory.CreateDirectory(restoreDirectory);
             }
 
-            foreach (var version in backupVersions)
+            foreach (var version in BackupVersions)
             {
                 string zipFilePath = version.BackupZipFilePath;
 
-                if (version == backupVersions.First())
+                if (version == BackupVersions.First())
                 {
                     // This is the full backup. Extract it.
                     ExtractZipFileToDirectory(zipFilePath, restoreDirectory);
@@ -121,13 +129,18 @@ namespace Back_It_Up.Models
                 }
             }
         }
-
+        // v2 den sonrası için tempe çıkartıktan sonra appplyt patch yap
         private async Task ApplyPatchesFromIncrementalBackup(string zipFilePath, string restoreDirectory)
         {
             using (ZipArchive archive = ZipFile.OpenRead(zipFilePath))
             {
                 foreach (ZipArchiveEntry patchEntry in archive.Entries)
                 {
+                    if (patchEntry.FullName == "metadata.json")
+                    {
+                        // Skip metadata file
+                        continue;
+                    }
                     // Assuming patch files are named after the original files with an additional extension
                     string originalFileName = Path.GetFileNameWithoutExtension(patchEntry.FullName);
                     string originalFilePath = Path.Combine(restoreDirectory, originalFileName);
@@ -137,15 +150,15 @@ namespace Back_It_Up.Models
                     patchEntry.ExtractToFile(patchFilePath, overwrite: true);
 
                     // Apply the patch
-                    await ApplyPatchToFile(originalFilePath, patchFilePath);
+                    ApplyPatchToFile(originalFilePath, patchFilePath);
 
                     // Delete the extracted patch file after applying
                     File.Delete(patchFilePath);
                 }
             }
         }
-
-        private async Task ApplyPatchToFile(string originalFilePath, string patchFilePath)
+        //here
+        private void ApplyPatchToFile(string originalFilePath, string patchFilePath)
         {
             // The file path for the new file generated after applying the patch
             string newFilePath = originalFilePath + ".new";
@@ -154,7 +167,7 @@ namespace Back_It_Up.Models
             using (FileStream deltaStream = new FileStream(patchFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
             using (FileStream newFileStream = new FileStream(newFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
             {
-                var deltaApplier = new DeltaApplier { SkipHashCheck = false };
+                var deltaApplier = new DeltaApplier { SkipHashCheck = true };
                 deltaApplier.Apply(basisStream, new BinaryDeltaReader(deltaStream, new ConsoleProgressReporter()), newFileStream);
             }
 
@@ -293,7 +306,7 @@ namespace Back_It_Up.Models
 
         private async Task<string> ExtractBackupFileAndGetPath(FileSystemItem file, BackupVersion version)
         {
-            //here
+            LoadBackup();
             string zipFilePath = BackupVersions[0].BackupZipFilePath;
             string extractedFilePath = "";
 

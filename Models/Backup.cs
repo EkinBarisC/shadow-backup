@@ -57,10 +57,11 @@ namespace Back_It_Up.Models
         public async Task PerformIncrementalBackup()
         {
             List<MetadataItem> res = await LoadPreviousBackupMetadata();
-            List<FileSystemItem> changedFiles = await GetChangedFiles(res);
+            List<FileSystemItem> changedFiles = await GetChangedFiles(res, Path.Combine(DestinationPath, BackupName, "Contents"));
             if (!changedFiles.Any())
             {
                 Console.WriteLine("No changes detected. Incremental backup is not required.");
+                Directory.Delete(Path.Combine(DestinationPath, BackupName, "Contents"), true);
                 return;
             }
 
@@ -373,43 +374,42 @@ namespace Back_It_Up.Models
             return null;
         }
 
-        public async Task<List<FileSystemItem>> GetChangedFiles(List<MetadataItem> previousMetadata)
+        public async Task<List<FileSystemItem>> GetChangedFiles(List<MetadataItem> previousMetadata, string restoredBackupDirectory)
         {
             var changedFiles = new List<FileSystemItem>();
-            await CheckAndAddChangedFiles(BackupItems, previousMetadata, changedFiles);
+            await CheckAndAddChangedFiles(BackupItems, previousMetadata, changedFiles, restoredBackupDirectory);
             return changedFiles;
         }
 
-        private async Task CheckAndAddChangedFiles(IEnumerable<FileSystemItem> items, List<MetadataItem> previousMetadata, List<FileSystemItem> changedFiles)
+        private async Task CheckAndAddChangedFiles(IEnumerable<FileSystemItem> items, List<MetadataItem> previousMetadata, List<FileSystemItem> changedFiles, string restoredBackupDirectory)
         {
             foreach (var item in items)
             {
                 var previousItem = previousMetadata.FirstOrDefault(pm => pm.Path == item.Path);
-                if (previousItem == null || (await HasFileChangedAsync(item, previousItem)))
+                if (previousItem == null || await HasFileChangedAsync(item, previousItem, restoredBackupDirectory))
                 {
                     changedFiles.Add(item);
                 }
 
-                // Recursively check children if it's a folder
                 if (item.IsFolder)
                 {
-                    await CheckAndAddChangedFiles(item.Children, previousMetadata, changedFiles);
+                    await CheckAndAddChangedFiles(item.Children, previousMetadata, changedFiles, restoredBackupDirectory);
                 }
             }
         }
 
-        private async Task<bool> HasFileChangedAsync(FileSystemItem currentItem, MetadataItem previousItem)
+        private async Task<bool> HasFileChangedAsync(FileSystemItem currentItem, MetadataItem previousItem, string restoredBackupDirectory)
         {
             if (currentItem.IsFolder)
             {
-                // Folders are handled recursively; skip processing here.
                 return false;
             }
 
-            // Compare checksums for files
-            string currentChecksum = await CalculateFileChecksum(currentItem.Path);
+            string restoredFilePath = Path.Combine(restoredBackupDirectory, Path.GetRelativePath(previousItem.RootPath, currentItem.Path));
+            string currentChecksum = await CalculateFileChecksum(restoredFilePath);
             return currentChecksum != previousItem.Checksum;
         }
+
 
         public async Task<string> CalculateFileChecksum(string filePath)
         {

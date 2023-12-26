@@ -61,7 +61,9 @@ namespace Back_It_Up.Models
             if (!changedFiles.Any())
             {
                 Console.WriteLine("No changes detected. Incremental backup is not required.");
-                Directory.Delete(Path.Combine(DestinationPath, BackupName, "Contents"), true);
+                string contentsDirectoryPath = Path.Combine(DestinationPath, BackupName, "Contents");
+                if (Directory.Exists(contentsDirectoryPath))
+                    Directory.Delete(Path.Combine(DestinationPath, BackupName, "Contents"), true);
                 return;
             }
 
@@ -405,7 +407,7 @@ namespace Back_It_Up.Models
                 return false;
             }
 
-            string restoredFilePath = Path.Combine(restoredBackupDirectory, Path.GetRelativePath(previousItem.RootPath, currentItem.Path));
+            string restoredFilePath = Path.Combine(restoredBackupDirectory, currentItem.Path);
             string currentChecksum = await CalculateFileChecksum(restoredFilePath);
             return currentChecksum != previousItem.Checksum;
         }
@@ -413,21 +415,17 @@ namespace Back_It_Up.Models
 
         public async Task<string> CalculateFileChecksum(string filePath)
         {
-            using (VssBackup vss = new VssBackup())
+            using (var md5 = MD5.Create())
             {
-                vss.Setup(Path.GetPathRoot(filePath));
-                string snap_path = vss.GetSnapshotPath(filePath);
-                using (var md5 = MD5.Create())
+                // Open the file asynchronously with AlphaFS
+                using (var stream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous))
                 {
-                    // Open the file asynchronously with AlphaFS
-                    using (var stream = File.Open(snap_path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous))
-                    {
-                        // Read and compute the hash asynchronously
-                        var hash = await md5.ComputeHashAsync(stream);
-                        return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
-                    }
+                    // Read and compute the hash asynchronously
+                    var hash = await md5.ComputeHashAsync(stream);
+                    return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
                 }
             }
+
         }
 
         public async Task<List<MetadataItem>> LoadPreviousBackupMetadata()

@@ -41,10 +41,7 @@ namespace Back_It_Up.Models
             LoadBackup();
             if (DoesPreviousBackupExist())
             {
-                if (BackupVersions.Count >= 2)
-                {
-                    await RestoreIncrementalBackup("backup");
-                }
+                await RestoreIncrementalBackup("backup");
                 await PerformIncrementalBackup();
             }
             else
@@ -56,7 +53,7 @@ namespace Back_It_Up.Models
 
         public async Task PerformIncrementalBackup()
         {
-            List<MetadataItem> res = await LoadPreviousBackupMetadata();
+            List<MetadataItem> res = await LoadPreviousBackupMetadata("latest");
             List<FileSystemItem> changedFiles = await GetChangedFiles(res, Path.Combine(DestinationPath, BackupName, "Contents"));
             if (!changedFiles.Any())
             {
@@ -72,8 +69,13 @@ namespace Back_It_Up.Models
 
             foreach (var file in changedFiles)
             {
-                // extract backup file to temp and get it's path
-                string tempFilePath = await ExtractBackupFileAndGetPath(file, version);
+                //here
+                // extract backup file to temp and get it's path ben bunu niye kullanıyom??
+                //string tempFilePath = await ExtractBackupFileAndGetPath(file, version);
+                //string tempFilePath = Path.Combine(DestinationPath, BackupName, "Contents", file.Name);
+                string restorePath = Path.Combine(DestinationPath, BackupName, "Contents");
+                string tempFilePath = await GetHierarchicalPathAsync(restorePath, file.Name);
+
                 string changedFilePath = file.Path;
                 string patchFilePath = Path.Combine(DestinationPath, BackupName, "Contents", file.Name + ".octopatch"); // Path where the patch file will be saved
 
@@ -132,7 +134,6 @@ namespace Back_It_Up.Models
                 }
             }
         }
-        // v2 den sonrası için tempe çıkartıktan sonra appplyt patch yap
         private async Task ApplyPatchesFromIncrementalBackup(string zipFilePath, string restoreDirectory)
         {
             using (ZipArchive archive = ZipFile.OpenRead(zipFilePath))
@@ -146,14 +147,18 @@ namespace Back_It_Up.Models
                     }
                     // Assuming patch files are named after the original files with an additional extension
                     string originalFileName = Path.GetFileNameWithoutExtension(patchEntry.FullName);
+                    //here eger parenti yoksa hata veriyor artı parentın parenı varsa da hata verir baska bir yol bulmak lazım
                     string originalFilePath = Path.Combine(restoreDirectory, originalFileName);
+
+                    string denemeFilePath = await GetHierarchicalPathAsync(restoreDirectory, originalFileName);
+
                     string patchFilePath = Path.Combine(restoreDirectory, patchEntry.FullName);
 
                     // Extract the patch file temporarily
                     patchEntry.ExtractToFile(patchFilePath, overwrite: true);
 
                     // Apply the patch
-                    ApplyPatchToFile(originalFilePath, patchFilePath);
+                    ApplyPatchToFile(denemeFilePath, patchFilePath);
 
                     // Delete the extracted patch file after applying
                     File.Delete(patchFilePath);
@@ -161,6 +166,43 @@ namespace Back_It_Up.Models
             }
         }
         //here
+
+        private async Task<string> GetHierarchicalPathAsync(string restoreDirectory, string fileName)
+        {
+            List<MetadataItem> fullMetadata = await LoadPreviousBackupMetadata("first");
+            var fileMetadata = fullMetadata.FirstOrDefault(m => Path.GetFileName(m.Path) == fileName && m.Type == "file");
+            if (fileMetadata == null)
+            {
+                return Path.Combine(restoreDirectory, fileName);
+            }
+
+            string hierarchicalPath = BuildHierarchicalPath(fileMetadata.Path, fileMetadata.RootPath, fullMetadata);
+            return Path.Combine(restoreDirectory, hierarchicalPath);
+        }
+
+        private string BuildHierarchicalPath(string currentPath, string rootPath, List<MetadataItem> metadata)
+        {
+            if (currentPath.Equals(rootPath, StringComparison.OrdinalIgnoreCase))
+            {
+                return "";
+            }
+
+            var parentItem = metadata.FirstOrDefault(m => currentPath.StartsWith(m.Path + "\\", StringComparison.OrdinalIgnoreCase) && m.Type == "folder");
+            if (parentItem == null)
+            {
+                return Path.GetFileName(currentPath); // Get the file name if no parent directory is found
+            }
+
+            string parentPath = BuildHierarchicalPath(parentItem.Path, rootPath, metadata);
+            if (string.IsNullOrEmpty(parentPath))
+            {
+                parentPath = Path.GetFileName(parentItem.Path); // Get the directory name only
+            }
+
+            return Path.Combine(parentPath, Path.GetFileName(currentPath));
+        }
+
+
         private void ApplyPatchToFile(string originalFilePath, string patchFilePath)
         {
             // The file path for the new file generated after applying the patch
@@ -309,7 +351,7 @@ namespace Back_It_Up.Models
 
         private async Task<string> ExtractBackupFileAndGetPath(FileSystemItem file, BackupVersion version)
         {
-            LoadBackup();
+            //LoadBackup();
             string zipFilePath = BackupVersions[0].BackupZipFilePath;
             string extractedFilePath = "";
 
@@ -390,7 +432,7 @@ namespace Back_It_Up.Models
                 var previousItem = previousMetadata.FirstOrDefault(pm => pm.Path == item.Path);
                 if (previousItem == null || await HasFileChangedAsync(item, previousItem, restoredBackupDirectory))
                 {
-                    changedFiles.Add(item);
+                    if (!item.IsFolder) changedFiles.Add(item);
                 }
 
                 if (item.IsFolder)
@@ -428,7 +470,7 @@ namespace Back_It_Up.Models
 
         }
 
-        public async Task<List<MetadataItem>> LoadPreviousBackupMetadata()
+        public async Task<List<MetadataItem>> LoadPreviousBackupMetadata(string which)
         {
 
             if (string.IsNullOrEmpty(BackupName))
@@ -444,7 +486,11 @@ namespace Back_It_Up.Models
 
             string manifestJson = File.ReadAllText(manifestPath);
             var backupVersions = JsonSerializer.Deserialize<List<BackupVersion>>(manifestJson) ?? new List<BackupVersion>();
-            var latestBackupVersion = backupVersions.OrderByDescending(v => v.DateCreated).FirstOrDefault();
+            BackupVersion latestBackupVersion;
+            if (which == "latest")
+                latestBackupVersion = backupVersions.OrderByDescending(v => v.DateCreated).FirstOrDefault();
+            else
+                latestBackupVersion = backupVersions.OrderBy(v => v.DateCreated).FirstOrDefault();
 
             if (latestBackupVersion == null)
             {

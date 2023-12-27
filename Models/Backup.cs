@@ -33,7 +33,7 @@ namespace Back_It_Up.Models
         public string RestorePath;
         public BackupSetting BackupSetting = new BackupSetting();
         public string BackupName;
-        private List<BackupVersion> BackupVersions;
+        public List<BackupVersion> BackupVersions;
         public BackupVersion Version;
 
         public async Task PerformBackup()
@@ -960,7 +960,7 @@ namespace Back_It_Up.Models
             }
         }
 
-        private async void LoadContents(BackupVersion backupVersion)
+        public async void LoadContents(BackupVersion backupVersion)
         {
             Version = backupVersion;
             string zipFilePath = backupVersion.BackupZipFilePath;

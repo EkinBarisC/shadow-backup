@@ -177,7 +177,7 @@ namespace Back_It_Up.Models
             }
 
             string hierarchicalPath = BuildHierarchicalPath(fileMetadata.Path, fileMetadata.RootPath, fullMetadata);
-            return Path.Combine(restoreDirectory, hierarchicalPath);
+            return Path.Combine(restoreDirectory, hierarchicalPath, fileName);
         }
 
         private string BuildHierarchicalPath(string currentPath, string rootPath, List<MetadataItem> metadata)
@@ -187,19 +187,37 @@ namespace Back_It_Up.Models
                 return "";
             }
 
-            var parentItem = metadata.FirstOrDefault(m => currentPath.StartsWith(m.Path + "\\", StringComparison.OrdinalIgnoreCase) && m.Type == "folder");
-            if (parentItem == null)
+            var parentItem = metadata
+                .Where(m => currentPath.StartsWith(m.Path + "\\", StringComparison.OrdinalIgnoreCase) && m.Type == "folder")
+                .OrderByDescending(m => m.Path.Length) // Ensure the closest parent is selected
+                .FirstOrDefault();
+
+            if (parentItem == null || parentItem.Path.Equals(rootPath, StringComparison.OrdinalIgnoreCase))
             {
-                return Path.GetFileName(currentPath); // Get the file name if no parent directory is found
+                return Path.GetFileName(Path.GetDirectoryName(currentPath)); // Get the file name or top-level directory name
             }
 
+            // Recursively build the path from the parent
             string parentPath = BuildHierarchicalPath(parentItem.Path, rootPath, metadata);
-            if (string.IsNullOrEmpty(parentPath))
+            //string currentRelativePath = currentPath.Replace(parentItem.Path + "\\", "");
+            string currentRelativePath = GetRelativePathFromRoot(parentItem.Path, parentPath);
+
+            return currentRelativePath;
+        }
+
+
+        private string GetRelativePathFromRoot(string fullPath, string rootFolderName)
+        {
+            int rootIndex = fullPath.IndexOf(rootFolderName, StringComparison.OrdinalIgnoreCase);
+            if (rootIndex == -1)
             {
-                parentPath = Path.GetFileName(parentItem.Path); // Get the directory name only
+                throw new ArgumentException("Root folder not found in the provided path.");
             }
 
-            return Path.Combine(parentPath, Path.GetFileName(currentPath));
+            // Include the length of the rootFolderName and the trailing slash in the substring
+            string relativePath = fullPath.Substring(rootIndex);
+
+            return relativePath;
         }
 
 

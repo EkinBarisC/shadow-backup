@@ -72,7 +72,14 @@ namespace Back_It_Up.ViewModels.Pages
             BackupStore store = App.GetService<BackupStore>();
             store.SelectedBackup.RestoreItems.Remove(dataItem);
         }
-
+        [RelayCommand]
+        public void LoadContents(BackupVersion backupVersion)
+        {
+            BackupStore store = App.GetService<BackupStore>();
+            //store.SelectedBackup.Version = backupVersion;
+            store.SelectedBackup.LoadContents(backupVersion);
+            FileSystemItems = store.SelectedBackup.BackupItems;
+        }
 
     }
 

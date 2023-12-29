@@ -58,6 +58,7 @@ namespace Back_It_Up.ViewModels.Pages
             store.CurrentContext = BackupStore.ExplorerContext.Restore;
             _navigationService.Navigate(typeof(DestinationExplorerPage));
         }
+
         [RelayCommand]
         private async void Restore()
         {

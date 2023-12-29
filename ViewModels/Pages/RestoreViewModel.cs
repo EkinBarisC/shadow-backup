@@ -27,6 +27,9 @@ namespace Back_It_Up.ViewModels.Pages
         private List<BackupVersion> _backupVersions;
 
         [ObservableProperty]
+        private BackupVersion _selectedVersion;
+
+        [ObservableProperty]
         private ObservableCollection<FileSystemItem> _fileSystemItems;
 
 
@@ -59,7 +62,8 @@ namespace Back_It_Up.ViewModels.Pages
         private async void Restore()
         {
             BackupStore store = App.GetService<BackupStore>();
-            await store.SelectedBackup.PerformRestore();
+            await store.SelectedBackup.RestoreIncrementalBackup("restore", _selectedVersion);
+
         }
 
         private void CheckBoxChecked(FileSystemItem dataItem)
@@ -76,8 +80,8 @@ namespace Back_It_Up.ViewModels.Pages
         public void LoadContents(BackupVersion backupVersion)
         {
             BackupStore store = App.GetService<BackupStore>();
-            //store.SelectedBackup.Version = backupVersion;
-            store.SelectedBackup.LoadContents(backupVersion);
+            store.SelectedBackup.LoadContents(_backupVersions[0]);
+            _selectedVersion = backupVersion;
             FileSystemItems = store.SelectedBackup.BackupItems;
         }
 

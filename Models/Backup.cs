@@ -41,7 +41,7 @@ namespace Back_It_Up.Models
             LoadBackup();
             if (DoesPreviousBackupExist())
             {
-                await RestoreIncrementalBackup("backup");
+                await RestoreIncrementalBackup("backup", Version);
                 await PerformIncrementalBackup();
             }
             else
@@ -69,10 +69,6 @@ namespace Back_It_Up.Models
 
             foreach (var file in changedFiles)
             {
-                //here
-                // extract backup file to temp and get it's path ben bunu niye kullanıyom??
-                //string tempFilePath = await ExtractBackupFileAndGetPath(file, version);
-                //string tempFilePath = Path.Combine(DestinationPath, BackupName, "Contents", file.Name);
                 string restorePath = Path.Combine(DestinationPath, BackupName, "Contents");
                 string tempFilePath = await GetHierarchicalPathAsync(restorePath, file.Name);
 
@@ -86,7 +82,7 @@ namespace Back_It_Up.Models
 
         }
 
-        public async Task RestoreIncrementalBackup(string reason)
+        public async Task RestoreIncrementalBackup(string reason, BackupVersion selectedVersion)
         {
             string restoreDirectory;
             if (reason == "restore")
@@ -105,16 +101,20 @@ namespace Back_It_Up.Models
 
                 if (version == BackupVersions.First())
                 {
-                    // This is the full backup. Extract it.
                     ExtractZipFileToDirectory(zipFilePath, restoreDirectory);
                 }
                 else
                 {
-                    // This is an incremental backup. Apply patches.
                     await ApplyPatchesFromIncrementalBackup(zipFilePath, restoreDirectory);
+                }
+
+                if (version.Version == selectedVersion.Version)
+                {
+                    break;
                 }
             }
         }
+
 
         private void ExtractZipFileToDirectory(string zipFilePath, string extractPath)
         {
@@ -954,8 +954,8 @@ namespace Back_It_Up.Models
                 {
                     string manifestJson = File.ReadAllText(manifestPath);
                     BackupVersions = JsonSerializer.Deserialize<List<BackupVersion>>(manifestJson) ?? new List<BackupVersion>();
-                    store.SelectedBackup.Version = BackupVersions[0];
-                    LoadContents(store.SelectedBackup.Version);
+                    store.SelectedBackup.Version = BackupVersions.Last();
+                    LoadContents(BackupVersions.First());
                 }
             }
         }
@@ -966,7 +966,6 @@ namespace Back_It_Up.Models
             string zipFilePath = backupVersion.BackupZipFilePath;
             string metadata = await ReadMetadataFromZip(zipFilePath);
             ObservableCollection<FileSystemItem> FileSystemItems = CreateFileSystemItemsFromJson(metadata);
-            // TODO: or restore items?
             BackupItems = FileSystemItems;
         }
 

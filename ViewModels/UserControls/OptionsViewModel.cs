@@ -1,4 +1,5 @@
 ﻿using Back_It_Up.Models;
+using Back_It_Up.Stores;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,14 +13,13 @@ namespace Back_It_Up.ViewModels.UserControls
 
 
         [ObservableProperty]
-        private string textContent = "Initial Value";
-
-        [ObservableProperty]
-        private BackupSetting backupSetting = new BackupSetting();
+        private BackupSetting backupSetting;
 
         public OptionsViewModel()
         {
-
+            //get backup store
+            BackupStore store = App.GetService<BackupStore>();
+            BackupSetting = store.SelectedBackup.BackupSetting;
         }
 
         [RelayCommand]

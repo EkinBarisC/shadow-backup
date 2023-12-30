@@ -17,16 +17,10 @@ namespace Back_It_Up.ViewModels.UserControls
 
         public OptionsViewModel()
         {
-            //get backup store
             BackupStore store = App.GetService<BackupStore>();
             BackupSetting = store.SelectedBackup.BackupSetting;
         }
 
-        [RelayCommand]
-        public void Save()
-        {
-            Console.WriteLine("ekin");
-        }
 
     }
 }

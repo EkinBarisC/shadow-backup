@@ -15,16 +15,13 @@ namespace Back_It_Up.Models
         private BackupScheme selectedBackupScheme;
 
         [ObservableProperty]
-        private string selectedCleaningOption;
+        private CleaningOption selectedCleaningOption;
 
         [ObservableProperty]
-        private int daysToKeepBackups = 7;
+        private int? daysToKeepBackups = 30;
 
         [ObservableProperty]
-        private int? fullBackupFrequency;
-
-        [ObservableProperty]
-        private int incrementalBackupVersionCount;
+        private int? fullBackupFrequency = 7;
     }
 
     public enum BackupMethod
@@ -40,5 +37,10 @@ namespace Back_It_Up.Models
         PeriodicFullBackup
     }
 
+    public enum CleaningOption
+    {
+        KeepAllBackups,
+        CleanUpOldBackups,
+    }
 
 }

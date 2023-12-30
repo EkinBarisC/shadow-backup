@@ -63,18 +63,25 @@
 
 
         <StackPanel Grid.Column="1">
-            <RadioButton Content="Keep All Backups" />
-            <RadioButton Content="Delete Backups Older Than" >
+            <RadioButton Content="Keep All Backups" GroupName="cleaningOption" 
+                         IsChecked="{Binding ViewModel.BackupSetting.SelectedCleaningOption, Converter={StaticResource EnumBooleanConverter}, ConverterParameter=KeepAllBackups}" />
+
+            <RadioButton Content="Delete Backups Older Than" GroupName="cleaningOption"  IsChecked="{Binding ViewModel.BackupSetting.SelectedCleaningOption, Converter={StaticResource EnumBooleanConverter}, ConverterParameter=CleanUpOldBackups}" >
                 <RadioButton.ContentTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="Delete Backups Older Than" />
-                            <TextBox Margin="10,0,0,0" Width="40" VerticalAlignment="Top" />
+                            <ui:NumberBox Margin="10,0,0,0" Width="40" VerticalAlignment="Top" ClearButtonEnabled="False" SpinButtonPlacementMode="Hidden" 
+                                              Text="{Binding ViewModel.BackupSetting.DaysToKeepBackups, Mode=TwoWay}" ValueChanged="NumberBox_ValueChanged_1"
+                                          />
                             <TextBlock Margin="10,0,0,0" Text="Days" VerticalAlignment="Top" />
+
                         </StackPanel>
                     </DataTemplate>
                 </RadioButton.ContentTemplate>
             </RadioButton>
+            <TextBlock Text="{Binding ViewModel.BackupSetting.DaysToKeepBackups}" />
+
         </StackPanel>
 
     </Grid>

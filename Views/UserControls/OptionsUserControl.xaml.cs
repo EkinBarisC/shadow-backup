@@ -44,5 +44,13 @@ namespace Back_It_Up.Views.UserControls
                 ViewModel.BackupSetting.FullBackupFrequency = (int?)numberBox.Value;
             }
         }
+
+        private void NumberBox_ValueChanged_1(object sender, RoutedEventArgs e)
+        {
+            if (sender is NumberBox numberBox)
+            {
+                ViewModel.BackupSetting.DaysToKeepBackups = (int?)numberBox.Value;
+            }
+        }
     }
 }

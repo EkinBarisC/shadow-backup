@@ -28,7 +28,6 @@
 
             <StackPanel  Margin="0,0,0,20">
                 <RadioButton Content="Full Backup" GroupName="method"  IsChecked="{Binding ViewModel.BackupSetting.SelectedBackupMethod, Converter={StaticResource EnumBooleanConverter}, ConverterParameter=Full}" />
-                <TextBlock Text="{Binding ViewModel.BackupSetting.SelectedBackupMethod}" />
                 <RadioButton Content="Incremental Backup" GroupName="method"
                                           IsChecked="{Binding ViewModel.BackupSetting.SelectedBackupMethod, Converter={StaticResource EnumBooleanConverter}, ConverterParameter=Incremental}" />
             </StackPanel>
@@ -55,8 +54,6 @@
                         </DataTemplate>
                     </RadioButton.ContentTemplate>
                 </RadioButton>
-                <TextBlock Text="{Binding ViewModel.BackupSetting.SelectedBackupScheme}" />
-                <TextBlock Text="{Binding ViewModel.BackupSetting.FullBackupFrequency}" />
 
             </StackPanel>
         </StackPanel>
@@ -80,7 +77,6 @@
                     </DataTemplate>
                 </RadioButton.ContentTemplate>
             </RadioButton>
-            <TextBlock Text="{Binding ViewModel.BackupSetting.DaysToKeepBackups}" />
 
         </StackPanel>
 

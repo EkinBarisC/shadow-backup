@@ -39,16 +39,31 @@ namespace Back_It_Up.Models
         public async Task PerformBackup()
         {
             LoadBackup();
-            if (DoesPreviousBackupExist())
+
+            switch (BackupSetting.SelectedBackupMethod)
             {
-                await RestoreIncrementalBackup("backup", Version);
-                await PerformIncrementalBackup();
-            }
-            else
-            {
-                await PerformFullBackup();
+                case BackupMethod.Full:
+                    await PerformFullBackup();
+                    break;
+
+                case BackupMethod.Incremental:
+
+                    if (DoesPreviousBackupExist())
+                    {
+                        await RestoreIncrementalBackup("backup", Version);
+                        await PerformIncrementalBackup();
+                    }
+                    else
+                    {
+                        await PerformFullBackup();
+                    }
+                    break;
+
+                default:
+                    throw new InvalidOperationException("Unknown backup method.");
             }
         }
+
 
 
         public async Task PerformIncrementalBackup()
@@ -508,7 +523,7 @@ namespace Back_It_Up.Models
             await CreateZipArchive(version);
             await WriteBackupLocation();
 
-            Messenger.Default.Send(BackupName);
+            //Messenger.Default.Send(BackupName);
         }
 
         public async Task<List<BackupVersion>> ReadManifestFileAsync()

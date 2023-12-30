@@ -27,12 +27,14 @@ namespace Back_It_Up.ViewModels.Pages
         private List<BackupVersion> _backupVersions;
 
         [ObservableProperty]
+        private BackupVersion _selectedVersion;
+
+        [ObservableProperty]
         private ObservableCollection<FileSystemItem> _fileSystemItems;
 
 
         public ICommand CheckBoxCheckedCommand { get; set; }
         public ICommand CheckBoxUncheckedCommand { get; set; }
-        public ICommand RestoreCommand { get; }
         public ICommand OpenDestinationExplorerCommand { get; }
 
         private readonly INavigationService _navigationService;
@@ -43,7 +45,9 @@ namespace Back_It_Up.ViewModels.Pages
             CheckBoxCheckedCommand = new RelayCommand<FileSystemItem>(CheckBoxChecked);
             CheckBoxUncheckedCommand = new RelayCommand<FileSystemItem>(CheckBoxUnchecked);
             OpenDestinationExplorerCommand = new RelayCommand(OpenDestinationExplorer);
-            RestoreCommand = new RelayCommand(Restore);
+            // get backup store
+            BackupStore store = App.GetService<BackupStore>();
+            BackupVersions = store.SelectedBackup.BackupVersions;
         }
 
 
@@ -54,10 +58,13 @@ namespace Back_It_Up.ViewModels.Pages
             store.CurrentContext = BackupStore.ExplorerContext.Restore;
             _navigationService.Navigate(typeof(DestinationExplorerPage));
         }
+
+        [RelayCommand]
         private async void Restore()
         {
             BackupStore store = App.GetService<BackupStore>();
-            await store.SelectedBackup.PerformRestore();
+            await store.SelectedBackup.RestoreIncrementalBackup("restore", _selectedVersion);
+
         }
 
         private void CheckBoxChecked(FileSystemItem dataItem)
@@ -70,10 +77,14 @@ namespace Back_It_Up.ViewModels.Pages
             BackupStore store = App.GetService<BackupStore>();
             store.SelectedBackup.RestoreItems.Remove(dataItem);
         }
-
-
-
-
+        [RelayCommand]
+        public void LoadContents(BackupVersion backupVersion)
+        {
+            BackupStore store = App.GetService<BackupStore>();
+            store.SelectedBackup.LoadContents(_backupVersions[0]);
+            _selectedVersion = backupVersion;
+            FileSystemItems = store.SelectedBackup.BackupItems;
+        }
 
     }
 

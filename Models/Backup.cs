@@ -102,7 +102,7 @@ namespace Back_It_Up.Models
                 if (version == BackupVersions.First())
                 {
                     if (reason == "restore")
-                        ExtractSelectedFilesFromZip(zipFilePath, restoreDirectory, RestoreItems);
+                        await ExtractSelectedFilesFromZip(zipFilePath, restoreDirectory, RestoreItems);
                     else
                         ExtractZipFileToDirectory(zipFilePath, restoreDirectory);
                 }
@@ -169,7 +169,6 @@ namespace Back_It_Up.Models
 
                     // Assuming patch files are named after the original files with an additional extension
                     string originalFileName = Path.GetFileNameWithoutExtension(patchEntry.FullName);
-
                     // Check if the original file is in the restore items list
                     if (!restoreItems.Any(item => item.Name.Equals(originalFileName, StringComparison.OrdinalIgnoreCase)))
                     {
@@ -441,7 +440,7 @@ namespace Back_It_Up.Models
 
             // Create signature of the original file
             var signatureBuilder = new SignatureBuilder();
-            using (var basisStream = new FileStream(originalFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (var basisStream = new FileStream(originalFilePath, FileMode.OpenOrCreate, FileAccess.Read, FileShare.Read))
             using (var signatureStream = new FileStream(patchFilePath + ".sig", FileMode.Create, FileAccess.Write, FileShare.None))
             {
                 signatureBuilder.Build(basisStream, new SignatureWriter(signatureStream));
@@ -1005,7 +1004,7 @@ namespace Back_It_Up.Models
             if (backupItems == null)
                 return fileSystemItems;
 
-            // Process the backup items
+            // Process the backup items from JSON
             foreach (var item in backupItems)
             {
                 if (item.Path != null && Path.GetFileName(item.Path) != "metadata.json")
@@ -1032,8 +1031,57 @@ namespace Back_It_Up.Models
                 }
             }
 
+            // Update folder contents by scanning the actual file system
+            UpdateFolderChildrenRecursively(fileSystemItems);
+
             return fileSystemItems;
         }
+
+        private void UpdateFolderChildrenRecursively(ObservableCollection<FileSystemItem> items)
+        {
+            foreach (var item in items)
+            {
+                if (item.IsFolder)
+                {
+                    UpdateFolderChildren(item);
+                    UpdateFolderChildrenRecursively(item.Children); // Recursive call for nested folders
+                }
+            }
+        }
+
+        private void UpdateFolderChildren(FileSystemItem folderItem)
+        {
+            if (Directory.Exists(folderItem.Path))
+            {
+                var directoryInfo = new Alphaleonis.Win32.Filesystem.DirectoryInfo(folderItem.Path);
+                foreach (var fileInfo in directoryInfo.GetFiles())
+                {
+                    if (!folderItem.Children.Any(child => child.Path == fileInfo.FullName))
+                    {
+                        folderItem.Children.Add(new FileSystemItem
+                        {
+                            Path = fileInfo.FullName,
+                            Name = fileInfo.Name,
+                            IsFolder = false
+                        });
+                    }
+                }
+                foreach (var subDir in directoryInfo.GetDirectories())
+                {
+                    if (!folderItem.Children.Any(child => child.Path == subDir.FullName))
+                    {
+                        var subFolderItem = new FileSystemItem
+                        {
+                            Path = subDir.FullName,
+                            Name = subDir.Name,
+                            IsFolder = true
+                        };
+                        folderItem.Children.Add(subFolderItem);
+                    }
+                }
+            }
+        }
+
 
 
         public void readManifestFile(string backupPath)

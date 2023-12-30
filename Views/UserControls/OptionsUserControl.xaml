@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:Back_It_Up.Views.UserControls" xmlns:local1="clr-namespace:Back_It_Up.Helpers"
+             xmlns:local="clr-namespace:Back_It_Up.Views.UserControls" xmlns:local1="clr-namespace:Back_It_Up.Helpers" xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800"
                  d:DataContext="{d:DesignInstance local:OptionsUserControl,
@@ -12,6 +12,7 @@
 
     <UserControl.Resources>
         <local1:Converter x:Key="EnumBooleanConverter"/>
+        <local1:IntToStringConverter x:Key="IntToStringConverter"/>
     </UserControl.Resources>
 
     <Grid>
@@ -33,10 +34,10 @@
             </StackPanel>
 
             <StackPanel>
-                <RadioButton Content="No Scheme" />
-                <RadioButton Content="Incremental Backup Only" />
-                <RadioButton Content="Continuous Data Protection" />
-                <RadioButton Content="Create a Full Backup After Every">
+                <RadioButton Content="No Scheme" GroupName="scheme"   IsChecked="{Binding ViewModel.BackupSetting.SelectedBackupScheme, Converter={StaticResource EnumBooleanConverter}, ConverterParameter=NoScheme}"/>
+                <RadioButton Content="Incremental Backup Only" GroupName="scheme"  IsChecked="{Binding ViewModel.BackupSetting.SelectedBackupScheme, Converter={StaticResource EnumBooleanConverter}, ConverterParameter=IncrementalBackupOnly}"/>
+                <RadioButton Content="Continuous Data Protection" GroupName="scheme"  IsChecked="{Binding ViewModel.BackupSetting.SelectedBackupScheme, Converter={StaticResource EnumBooleanConverter}, ConverterParameter=ContinuousDataProtection}"/>
+                <RadioButton Content="Create a Full Backup After Every" GroupName="scheme"  IsChecked="{Binding ViewModel.BackupSetting.SelectedBackupScheme, Converter={StaticResource EnumBooleanConverter}, ConverterParameter=PeriodicFullBackup}">
                     <RadioButton.ContentTemplate>
                         <DataTemplate>
                             <Grid>
@@ -46,12 +47,17 @@
                                     <ColumnDefinition />
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Text="Create a Full Backup After Every" Grid.Column="0" Grid.ColumnSpan="2" VerticalAlignment="Top" />
-                                <TextBox Margin="110,0,0,0"  Width="40"  Grid.Column="1" VerticalAlignment="Top"  />
+                                <ui:NumberBox Margin="110,0,0,0" Width="50" Grid.Column="1" VerticalAlignment="Top" ClearButtonEnabled="False" SpinButtonPlacementMode="Hidden"
+                                Text="{Binding ViewModel.BackupSetting.FullBackupFrequency, Mode=TwoWay}" ValueChanged="NumberBox_ValueChanged" />
+
                                 <TextBlock Margin="10,0,0,0" Text="Versions" Grid.Column="2" VerticalAlignment="Top"  />
                             </Grid>
                         </DataTemplate>
                     </RadioButton.ContentTemplate>
                 </RadioButton>
+                <TextBlock Text="{Binding ViewModel.BackupSetting.SelectedBackupScheme}" />
+                <TextBlock Text="{Binding ViewModel.BackupSetting.FullBackupFrequency}" />
+
             </StackPanel>
         </StackPanel>
 

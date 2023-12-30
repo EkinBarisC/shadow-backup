@@ -10,6 +10,10 @@ namespace Back_It_Up.ViewModels.UserControls
     public partial class OptionsViewModel : ObservableObject
     {
 
+
+        [ObservableProperty]
+        private string textContent = "Initial Value";
+
         [ObservableProperty]
         private BackupSetting backupSetting = new BackupSetting();
 

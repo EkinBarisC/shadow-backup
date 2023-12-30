@@ -6,13 +6,27 @@ using System.Threading.Tasks;
 
 namespace Back_It_Up.Models
 {
-    class BackupSetting
+    public partial class BackupSetting : ObservableObject
     {
-        public string SelectedBackupMethod { get; set; }
-        public string SelectedBackupScheme { get; set; }
-        public string SelectedCleaningOption { get; set; }
-        public int DaysToKeepBackups { get; set; }
-        public int IncrementalBackupVersionCount { get; set; }
+        [ObservableProperty]
+        private BackupMethod selectedBackupMethod;
 
+        [ObservableProperty]
+        private string selectedBackupScheme;
+
+        [ObservableProperty]
+        private string selectedCleaningOption;
+
+        [ObservableProperty]
+        private int daysToKeepBackups;
+
+        [ObservableProperty]
+        private int incrementalBackupVersionCount;
     }
+
+    public enum BackupMethod
+    {
+        Full, Incremental
+    }
+
 }

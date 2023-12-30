@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Back_It_Up.ViewModels.UserControls;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,13 +16,15 @@ using System.Windows.Shapes;
 
 namespace Back_It_Up.Views.UserControls
 {
-    /// <summary>
-    /// Interaction logic for OptionsUserControl.xaml
-    /// </summary>
+
     public partial class OptionsUserControl : UserControl
     {
-        public OptionsUserControl()
+        public OptionsViewModel ViewModel { get; }
+
+        public OptionsUserControl(OptionsViewModel viewModel)
         {
+            ViewModel = viewModel;
+            DataContext = this;
             InitializeComponent();
         }
     }

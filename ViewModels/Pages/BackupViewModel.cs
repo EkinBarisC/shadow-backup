@@ -6,6 +6,7 @@
 using Alphaleonis.Win32.Filesystem;
 using Alphaleonis.Win32.Vss;
 using Back_It_Up.Models;
+using Back_It_Up.ViewModels.UserControls;
 using Back_It_Up.ViewModels.Windows;
 using Back_It_Up.Views.Pages;
 using Back_It_Up.Views.UserControls;
@@ -28,7 +29,7 @@ namespace Back_It_Up.ViewModels.Pages
         public ICommand PerformBackupCommand { get; set; }
         public ObservableCollection<string> BreadcrumbBarItems { get; private set; }
 
-              private UserControl _currentView;
+        private UserControl _currentView;
 
         public UserControl CurrentView
         {
@@ -61,7 +62,7 @@ namespace Back_It_Up.ViewModels.Pages
                     CurrentView = new SourceUserControl(new SourceViewModel(_navigationService));
                     break;
                 case "Options":
-                    CurrentView = new OptionsUserControl();
+                    CurrentView = new OptionsUserControl(new OptionsViewModel());
                     break;
                 case "Schedule":
                     CurrentView = new ScheduleUserControl();
@@ -70,10 +71,10 @@ namespace Back_It_Up.ViewModels.Pages
             }
         }
 
-      
+
         private void OpenSourceExplorer()
         {
-        _navigationService.Navigate(typeof(SourceExplorerPage));
+            _navigationService.Navigate(typeof(SourceExplorerPage));
         }
 
     }

@@ -517,13 +517,11 @@ namespace Back_It_Up.Models
 
         public async Task PerformFullBackup()
         {
-            int version = CreateManifest();
+            int version = CreateManifest(BackupSetting.SelectedBackupMethod);
             await CreateMetadata();
             await FullBackup();
             await CreateZipArchive(version);
             await WriteBackupLocation();
-
-            //Messenger.Default.Send(BackupName);
         }
 
         public async Task<List<BackupVersion>> ReadManifestFileAsync()
@@ -716,7 +714,7 @@ namespace Back_It_Up.Models
         }
 
 
-        public int CreateManifest()
+        public int CreateManifest(BackupMethod method) // Assuming the backup method is passed as a parameter
         {
             string destinationFolder = Path.Combine(DestinationPath, BackupName);
             if (!Directory.Exists(destinationFolder))
@@ -725,52 +723,35 @@ namespace Back_It_Up.Models
             }
 
             string manifestPath = Path.Combine(destinationFolder, "manifest.json");
-            int version = 1;
+            List<BackupVersion> backupVersions;
 
-            List<BackupVersion> backupVersions = new List<BackupVersion>();
-
-            // Check if the manifest file already exists. If it does, read and deserialize its content.
-            if (!File.Exists(manifestPath))
-            {
-                backupVersions.Add(new BackupVersion()
-                {
-                    Version = 1,
-                    DateCreated = DateTime.Now,
-                    BackupZipFilePath = Path.Combine(destinationFolder, "v1.zip")
-                });
-
-                string manifestJson = JsonSerializer.Serialize(backupVersions, new JsonSerializerOptions
-                {
-                    WriteIndented = true
-                });
-
-                File.WriteAllText(manifestPath, manifestJson);
-            }
-            else if (File.Exists(manifestPath))
+            if (File.Exists(manifestPath))
             {
                 string existingManifestJson = File.ReadAllText(manifestPath);
                 backupVersions = JsonSerializer.Deserialize<List<BackupVersion>>(existingManifestJson) ?? new List<BackupVersion>();
-                version = backupVersions.Last().Version + 1;
-
-                backupVersions.Add(new BackupVersion()
-                {
-                    Version = version,
-                    DateCreated = DateTime.Now,
-                    BackupZipFilePath = Path.Combine(destinationFolder, "v" + version + ".zip")
-                });
-
-                string manifestJson = JsonSerializer.Serialize(backupVersions, new JsonSerializerOptions
-                {
-                    WriteIndented = true
-                });
-
-                File.WriteAllText(manifestPath, manifestJson);
-
-
+            }
+            else
+            {
+                backupVersions = new List<BackupVersion>();
             }
 
-            return version;
+            int newVersionNumber = backupVersions.Any() ? backupVersions.Max(v => v.Version) + 1 : 1;
+            BackupVersion newVersion = new BackupVersion()
+            {
+                Version = newVersionNumber,
+                DateCreated = DateTime.Now,
+                BackupZipFilePath = Path.Combine(destinationFolder, $"v{newVersionNumber}.zip"),
+                BackupMethod = method // Set the backup method for the new version
+            };
+
+            backupVersions.Add(newVersion);
+
+            string manifestJson = JsonSerializer.Serialize(backupVersions, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(manifestPath, manifestJson);
+
+            return newVersionNumber;
         }
+
 
         public async Task CreateIncrementalMetadata(List<FileSystemItem> changedFiles)
         {
@@ -1123,6 +1104,7 @@ namespace Back_It_Up.Models
             string metadata = await ReadMetadataFromZip(zipFilePath);
             ObservableCollection<FileSystemItem> FileSystemItems = CreateFileSystemItemsFromJson(metadata);
             BackupItems = FileSystemItems;
+            BackupSetting.SelectedBackupMethod = Version.BackupMethod;
         }
 
         private FileSystemItem FindItemByPath(ObservableCollection<FileSystemItem> items, string path)

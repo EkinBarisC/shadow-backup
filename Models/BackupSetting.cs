@@ -48,7 +48,8 @@ namespace Back_It_Up.Models
         NotStarted,
         InProgress,
         Complete,
-        Failed
+        Failed,
+        RestoreComplete
     }
 
 }

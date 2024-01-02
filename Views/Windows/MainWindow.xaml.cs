@@ -41,6 +41,7 @@ namespace Back_It_Up.Views.Windows
             this.snackbarService = snackbarService;
 
             Messenger.Default.Register<string>(this, BackupStatus.Complete, OnBackupCreated);
+            Messenger.Default.Register<string>(this, BackupStatus.RestoreComplete, OnRestoreCreated);
 
         }
 
@@ -48,6 +49,10 @@ namespace Back_It_Up.Views.Windows
         {
             //ViewModel.LoadBackupLocations();
             ShowSnackbarMessage("Backup Completed");
+        }
+        private void OnRestoreCreated(string backupName)
+        {
+            ShowSnackbarMessage("Restore Completed");
         }
 
         public void ShowSnackbarMessage(string message)

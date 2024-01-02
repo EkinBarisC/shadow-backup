@@ -517,7 +517,7 @@ namespace Back_It_Up.Models
 
         public async Task PerformFullBackup()
         {
-            int version = CreateManifest(BackupSetting.SelectedBackupMethod);
+            int version = await CreateManifest(BackupSetting.SelectedBackupMethod);
             await CreateMetadata();
             await FullBackup();
             await CreateZipArchive(version);
@@ -714,7 +714,7 @@ namespace Back_It_Up.Models
         }
 
 
-        public int CreateManifest(BackupMethod method) // Assuming the backup method is passed as a parameter
+        public async Task<int> CreateManifest(BackupMethod method)
         {
             string destinationFolder = Path.Combine(DestinationPath, BackupName);
             if (!Directory.Exists(destinationFolder))
@@ -727,7 +727,7 @@ namespace Back_It_Up.Models
 
             if (File.Exists(manifestPath))
             {
-                string existingManifestJson = File.ReadAllText(manifestPath);
+                string existingManifestJson = await System.IO.File.ReadAllTextAsync(manifestPath);
                 backupVersions = JsonSerializer.Deserialize<List<BackupVersion>>(existingManifestJson) ?? new List<BackupVersion>();
             }
             else
@@ -741,13 +741,13 @@ namespace Back_It_Up.Models
                 Version = newVersionNumber,
                 DateCreated = DateTime.Now,
                 BackupZipFilePath = Path.Combine(destinationFolder, $"v{newVersionNumber}.zip"),
-                BackupMethod = method // Set the backup method for the new version
+                BackupMethod = method
             };
 
             backupVersions.Add(newVersion);
 
             string manifestJson = JsonSerializer.Serialize(backupVersions, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(manifestPath, manifestJson);
+            await System.IO.File.WriteAllTextAsync(manifestPath, manifestJson);
 
             return newVersionNumber;
         }
@@ -803,26 +803,24 @@ namespace Back_It_Up.Models
                 WriteIndented = true
             });
 
-            using KernelTransaction kernelTransaction = new KernelTransaction();
-            {
-                try
-                {
-                    await Task.Run(() =>
-                    {
-                        string backupNameFolderPath = Path.Combine(DestinationPath, "Contents");
-                        string metadataFilePath = Path.Combine(backupNameFolderPath, "metadata.json");
-                        Directory.CreateDirectoryTransacted(kernelTransaction, backupNameFolderPath);
-                        File.WriteAllTextTransacted(kernelTransaction, metadataFilePath, metadataJson);
+            string backupNameFolderPath = Path.Combine(DestinationPath, "Contents");
+            string metadataFilePath = Path.Combine(backupNameFolderPath, "metadata.json");
 
-                        kernelTransaction.Commit();
-                    });
-                }
-                catch (Exception)
-                {
-                    kernelTransaction.Rollback();
-                }
+            try
+            {
+                // Asynchronously create directory and write metadata file
+                // Adjust to work with KernelTransaction if necessary
+                Directory.CreateDirectory(backupNameFolderPath);
+                await System.IO.File.WriteAllTextAsync(metadataFilePath, metadataJson);
+            }
+            catch (Exception ex)
+            {
+                // Handle any exceptions, possibly rolling back if needed
+                // Log the error
+                Console.WriteLine($"Error creating metadata: {ex.Message}");
             }
         }
+
 
 
         private async Task AddItemAndChildrenToMetadata(FileSystemItem item, List<MetadataItem> metadataList, string rootPath)

@@ -7,6 +7,7 @@ using Back_It_Up.Stores;
 using Back_It_Up.ViewModels.Windows;
 using GalaSoft.MvvmLight.Messaging;
 using System.Windows.Controls;
+using Wpf.Ui.Common;
 using Wpf.Ui.Controls;
 
 namespace Back_It_Up.Views.Windows
@@ -14,6 +15,8 @@ namespace Back_It_Up.Views.Windows
     public partial class MainWindow
     {
         public MainWindowViewModel ViewModel { get; }
+        ISnackbarService snackbarService;
+        private ControlAppearance snackbarAppearance = ControlAppearance.Secondary;
 
         public MainWindow(
             MainWindowViewModel viewModel,
@@ -27,19 +30,33 @@ namespace Back_It_Up.Views.Windows
 
             ViewModel = viewModel;
             DataContext = this;
-            //Messenger.Default.Register<string>(this, OnBackupCreated);
             InitializeComponent();
+
 
             navigationService.SetNavigationControl(NavigationView);
             snackbarService.SetSnackbarPresenter(SnackbarPresenter);
             contentDialogService.SetContentPresenter(RootContentDialog);
-
             NavigationView.SetServiceProvider(serviceProvider);
+            this.snackbarService = snackbarService;
+
+            Messenger.Default.Register<string>(this, OnBackupCreated);
+
         }
 
         private void OnBackupCreated(string backupName)
         {
-            ViewModel.LoadBackupLocations();
+            //ViewModel.LoadBackupLocations();
+            ShowSnackbarMessage("Backup Completed");
+        }
+
+        public void ShowSnackbarMessage(string message)
+        {
+            snackbarService.Show(
+           message, "",
+           snackbarAppearance,
+           new SymbolIcon(SymbolRegular.Save24),
+           TimeSpan.FromSeconds(5)
+       );
         }
 
 

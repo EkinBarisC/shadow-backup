@@ -71,6 +71,10 @@
             </ui:NavigationView.ContentOverlay>
         </ui:NavigationView>
 
+
         <ContentPresenter x:Name="RootContentDialog" Grid.Row="0" />
+
+        <ui:SnackbarPresenter x:Name="MainSnackbarPresenter" />
+
     </Grid>
 </ui:FluentWindow>

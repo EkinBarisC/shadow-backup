@@ -43,4 +43,12 @@ namespace Back_It_Up.Models
         CleanUpOldBackups,
     }
 
+    public enum BackupStatus
+    {
+        NotStarted,
+        InProgress,
+        Complete,
+        Failed
+    }
+
 }

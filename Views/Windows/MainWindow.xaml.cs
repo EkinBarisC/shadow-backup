@@ -3,6 +3,7 @@
 // Copyright (C) Leszek Pomianowski and WPF UI Contributors.
 // All Rights Reserved.
 
+using Back_It_Up.Models;
 using Back_It_Up.Stores;
 using Back_It_Up.ViewModels.Windows;
 using GalaSoft.MvvmLight.Messaging;
@@ -39,7 +40,7 @@ namespace Back_It_Up.Views.Windows
             NavigationView.SetServiceProvider(serviceProvider);
             this.snackbarService = snackbarService;
 
-            Messenger.Default.Register<string>(this, OnBackupCreated);
+            Messenger.Default.Register<string>(this, BackupStatus.Complete, OnBackupCreated);
 
         }
 

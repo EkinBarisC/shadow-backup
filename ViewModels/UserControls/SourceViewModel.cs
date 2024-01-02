@@ -55,7 +55,7 @@ namespace Back_It_Up.ViewModels.Pages
             BackupStore store = App.GetService<BackupStore>();
             await store.SelectedBackup.PerformBackup();
             //send message backup complete
-            Messenger.Default.Send<string>("Backup Complete");
+            Messenger.Default.Send<string>("Backup Complete", BackupStatus.Complete);
         }
 
 

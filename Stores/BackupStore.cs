@@ -16,7 +16,7 @@ namespace Back_It_Up.Stores
         public Backup SelectedBackup = new Backup();
         public enum ExplorerContext
         {
-            Backup, Restore
+            Backup, Restore, Find
         }
         public ExplorerContext CurrentContext { get; set; }
     }

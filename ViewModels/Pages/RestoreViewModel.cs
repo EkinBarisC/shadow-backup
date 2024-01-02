@@ -60,6 +60,14 @@ namespace Back_It_Up.ViewModels.Pages
         }
 
         [RelayCommand]
+        private void OpenFindBackupExplorer()
+        {
+            BackupStore store = App.GetService<BackupStore>();
+            store.CurrentContext = BackupStore.ExplorerContext.Find;
+            _navigationService.Navigate(typeof(DestinationExplorerPage));
+        }
+
+        [RelayCommand]
         private async void Restore()
         {
             BackupStore store = App.GetService<BackupStore>();

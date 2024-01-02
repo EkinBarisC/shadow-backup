@@ -49,11 +49,17 @@ namespace Back_It_Up.Views.Windows
             if (sender.SelectedItem is NavigationViewItem selectedItem)
             {
                 BackupStore store = App.GetService<BackupStore>();
-                if (selectedItem.Content != null)
+                if (selectedItem.Content != null && selectedItem.Content.ToString() != "Add New Backup")
                 {
                     store.SelectedBackup.BackupName = selectedItem.Content.ToString();
                     store.SelectedBackup.LoadBackup();
                 }
+                else if (selectedItem.Content != null && selectedItem.Content.ToString() == "Add New Backup")
+                {
+                    store.SelectedBackup.LoadBackup();
+
+                }
+
             }
         }
     }

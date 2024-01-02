@@ -66,6 +66,7 @@
 
         <StackPanel Orientation="Vertical" Grid.Row="1">
             <Button Content="Select Alternate Path" Command="{Binding ViewModel.OpenDestinationExplorerCommand}" />
+            <Button Content="Find Backup" Command="{Binding ViewModel.OpenFindBackupExplorerCommand}" />
             <Button Content="Restore" Command="{Binding ViewModel.RestoreCommand}" />
         </StackPanel>
     </Grid>

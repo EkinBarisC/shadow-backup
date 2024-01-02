@@ -83,7 +83,7 @@ namespace Back_It_Up.ViewModels.Pages
         }
 
 
-        public void CheckBox_Checked(FileSystemItem dataItem)
+        public async void CheckBox_Checked(FileSystemItem dataItem)
         {
             dataItem.IsExpanded = true;
 
@@ -103,6 +103,13 @@ namespace Back_It_Up.ViewModels.Pages
             {
                 store.SelectedBackup.DestinationPath = dataItem.Path;
             }
+            else if (store.CurrentContext == BackupStore.ExplorerContext.Find)
+            {
+                store.SelectedBackup.DestinationPath = Path.GetDirectoryName(dataItem.Path);
+                store.SelectedBackup.BackupName = Path.GetFileNameWithoutExtension(dataItem.Path);
+                await store.SelectedBackup.WriteBackupLocation();
+            }
+
         }
 
         public void CheckBox_Unchecked(FileSystemItem dataItem)

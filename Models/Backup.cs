@@ -39,16 +39,31 @@ namespace Back_It_Up.Models
         public async Task PerformBackup()
         {
             LoadBackup();
-            if (DoesPreviousBackupExist())
+
+            switch (BackupSetting.SelectedBackupMethod)
             {
-                await RestoreIncrementalBackup("backup", Version);
-                await PerformIncrementalBackup();
-            }
-            else
-            {
-                await PerformFullBackup();
+                case BackupMethod.Full:
+                    await PerformFullBackup();
+                    break;
+
+                case BackupMethod.Incremental:
+
+                    if (DoesPreviousBackupExist())
+                    {
+                        await RestoreIncrementalBackup("backup", Version);
+                        await PerformIncrementalBackup();
+                    }
+                    else
+                    {
+                        await PerformFullBackup();
+                    }
+                    break;
+
+                default:
+                    throw new InvalidOperationException("Unknown backup method.");
             }
         }
+
 
 
         public async Task PerformIncrementalBackup()
@@ -502,13 +517,11 @@ namespace Back_It_Up.Models
 
         public async Task PerformFullBackup()
         {
-            int version = CreateManifest();
+            int version = await CreateManifest(BackupSetting.SelectedBackupMethod);
             await CreateMetadata();
             await FullBackup();
             await CreateZipArchive(version);
             await WriteBackupLocation();
-
-            Messenger.Default.Send(BackupName);
         }
 
         public async Task<List<BackupVersion>> ReadManifestFileAsync()
@@ -701,7 +714,7 @@ namespace Back_It_Up.Models
         }
 
 
-        public int CreateManifest()
+        public async Task<int> CreateManifest(BackupMethod method)
         {
             string destinationFolder = Path.Combine(DestinationPath, BackupName);
             if (!Directory.Exists(destinationFolder))
@@ -710,52 +723,35 @@ namespace Back_It_Up.Models
             }
 
             string manifestPath = Path.Combine(destinationFolder, "manifest.json");
-            int version = 1;
+            List<BackupVersion> backupVersions;
 
-            List<BackupVersion> backupVersions = new List<BackupVersion>();
-
-            // Check if the manifest file already exists. If it does, read and deserialize its content.
-            if (!File.Exists(manifestPath))
+            if (File.Exists(manifestPath))
             {
-                backupVersions.Add(new BackupVersion()
-                {
-                    Version = 1,
-                    DateCreated = DateTime.Now,
-                    BackupZipFilePath = Path.Combine(destinationFolder, "v1.zip")
-                });
-
-                string manifestJson = JsonSerializer.Serialize(backupVersions, new JsonSerializerOptions
-                {
-                    WriteIndented = true
-                });
-
-                File.WriteAllText(manifestPath, manifestJson);
-            }
-            else if (File.Exists(manifestPath))
-            {
-                string existingManifestJson = File.ReadAllText(manifestPath);
+                string existingManifestJson = await System.IO.File.ReadAllTextAsync(manifestPath);
                 backupVersions = JsonSerializer.Deserialize<List<BackupVersion>>(existingManifestJson) ?? new List<BackupVersion>();
-                version = backupVersions.Last().Version + 1;
-
-                backupVersions.Add(new BackupVersion()
-                {
-                    Version = version,
-                    DateCreated = DateTime.Now,
-                    BackupZipFilePath = Path.Combine(destinationFolder, "v" + version + ".zip")
-                });
-
-                string manifestJson = JsonSerializer.Serialize(backupVersions, new JsonSerializerOptions
-                {
-                    WriteIndented = true
-                });
-
-                File.WriteAllText(manifestPath, manifestJson);
-
-
+            }
+            else
+            {
+                backupVersions = new List<BackupVersion>();
             }
 
-            return version;
+            int newVersionNumber = backupVersions.Any() ? backupVersions.Max(v => v.Version) + 1 : 1;
+            BackupVersion newVersion = new BackupVersion()
+            {
+                Version = newVersionNumber,
+                DateCreated = DateTime.Now,
+                BackupZipFilePath = Path.Combine(destinationFolder, $"v{newVersionNumber}.zip"),
+                BackupMethod = method
+            };
+
+            backupVersions.Add(newVersion);
+
+            string manifestJson = JsonSerializer.Serialize(backupVersions, new JsonSerializerOptions { WriteIndented = true });
+            await System.IO.File.WriteAllTextAsync(manifestPath, manifestJson);
+
+            return newVersionNumber;
         }
+
 
         public async Task CreateIncrementalMetadata(List<FileSystemItem> changedFiles)
         {
@@ -807,26 +803,24 @@ namespace Back_It_Up.Models
                 WriteIndented = true
             });
 
-            using KernelTransaction kernelTransaction = new KernelTransaction();
-            {
-                try
-                {
-                    await Task.Run(() =>
-                    {
-                        string backupNameFolderPath = Path.Combine(DestinationPath, "Contents");
-                        string metadataFilePath = Path.Combine(backupNameFolderPath, "metadata.json");
-                        Directory.CreateDirectoryTransacted(kernelTransaction, backupNameFolderPath);
-                        File.WriteAllTextTransacted(kernelTransaction, metadataFilePath, metadataJson);
+            string backupNameFolderPath = Path.Combine(DestinationPath, "Contents");
+            string metadataFilePath = Path.Combine(backupNameFolderPath, "metadata.json");
 
-                        kernelTransaction.Commit();
-                    });
-                }
-                catch (Exception)
-                {
-                    kernelTransaction.Rollback();
-                }
+            try
+            {
+                // Asynchronously create directory and write metadata file
+                // Adjust to work with KernelTransaction if necessary
+                Directory.CreateDirectory(backupNameFolderPath);
+                await System.IO.File.WriteAllTextAsync(metadataFilePath, metadataJson);
+            }
+            catch (Exception ex)
+            {
+                // Handle any exceptions, possibly rolling back if needed
+                // Log the error
+                Console.WriteLine($"Error creating metadata: {ex.Message}");
             }
         }
+
 
 
         private async Task AddItemAndChildrenToMetadata(FileSystemItem item, List<MetadataItem> metadataList, string rootPath)
@@ -870,51 +864,67 @@ namespace Back_It_Up.Models
 
         public async Task FullBackup()
         {
-
             foreach (FileSystemItem backupItem in BackupItems)
             {
                 string source = backupItem.Path;
-                // Initialize the shadow copy subsystem.
                 using (VssBackup vss = new VssBackup())
                 {
-                    vss.Setup(Path.GetPathRoot(source));
+                    await vss.Setup(Path.GetPathRoot(source));
                     string snap_path = vss.GetSnapshotPath(source);
                     string backupNameFolderPath = Path.Combine(DestinationPath, "Contents");
                     string destinationPath = Path.Combine(backupNameFolderPath, Path.GetFileName(source));
 
-                    using KernelTransaction kernelTransaction = new KernelTransaction();
+                    try
                     {
-                        try
+                        if (backupItem.IsFolder)
                         {
-                            await Task.Run(() =>
-                            {
-                                Directory.CreateDirectoryTransacted(kernelTransaction, backupNameFolderPath);
-
-                                if (backupItem.IsFolder)
-                                {
-                                    //Directory.Copy(snap_path, destinationPath);
-                                    Directory.CopyTransacted(kernelTransaction, snap_path, destinationPath);
-                                }
-                                else
-                                {
-                                    //File.Copy(snap_path, destinationPath);
-                                    File.CopyTransacted(kernelTransaction, snap_path, destinationPath);
-                                }
-
-
-                                kernelTransaction.Commit();
-                            });
+                            await CopyDirectoryAsync(snap_path, destinationPath);
                         }
-                        catch (Exception)
+                        else
                         {
-                            kernelTransaction.Rollback();
+                            await CopyFileAsync(snap_path, destinationPath);
                         }
                     }
-
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error during backup of '{source}': {ex.Message}");
+                    }
                 }
-
             }
         }
+
+
+        private async Task CopyFileAsync(string sourcePath, string destinationPath)
+        {
+            using (var sourceStream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 4096, useAsync: true))
+            using (var destStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 4096, useAsync: true))
+            {
+                await sourceStream.CopyToAsync(destStream);
+            }
+        }
+        private async Task CopyDirectoryAsync(string sourceDirPath, string destDirPath)
+        {
+            Directory.CreateDirectory(destDirPath);
+
+            var files = Directory.GetFiles(sourceDirPath);
+            foreach (var file in files)
+            {
+                string fileName = Path.GetFileName(file);
+                string destFilePath = Path.Combine(destDirPath, fileName);
+                await CopyFileAsync(file, destFilePath);
+            }
+
+            var subdirectories = Directory.GetDirectories(sourceDirPath);
+            foreach (var subdirectory in subdirectories)
+            {
+                string subdirectoryName = Path.GetFileName(subdirectory);
+                string destSubdirectoryPath = Path.Combine(destDirPath, subdirectoryName);
+                await CopyDirectoryAsync(subdirectory, destSubdirectoryPath);
+            }
+        }
+
+
+
 
         public async Task CreateZipArchive(int version)
         {
@@ -924,7 +934,10 @@ namespace Back_It_Up.Models
             string zipPath = Path.Combine(backupDestinationFolder, "v" + version + ".zip");
             string sourcePath = Path.Combine(DestinationPath, "Contents");
             string manifestPath = Path.Combine(DestinationPath, "manifest.json");
-            ZipFile.CreateFromDirectory(sourcePath, zipPath, CompressionLevel.Fastest, false);
+            await Task.Run(() =>
+            {
+                ZipFile.CreateFromDirectory(sourcePath, zipPath, CompressionLevel.Fastest, false);
+            });
             using KernelTransaction kernelTransaction = new KernelTransaction();
             {
                 try
@@ -1108,6 +1121,7 @@ namespace Back_It_Up.Models
             string metadata = await ReadMetadataFromZip(zipFilePath);
             ObservableCollection<FileSystemItem> FileSystemItems = CreateFileSystemItemsFromJson(metadata);
             BackupItems = FileSystemItems;
+            BackupSetting.SelectedBackupMethod = Version.BackupMethod;
         }
 
         private FileSystemItem FindItemByPath(ObservableCollection<FileSystemItem> items, string path)

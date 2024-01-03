@@ -40,7 +40,8 @@ namespace Back_It_Up.ViewModels.Pages
             this.CheckBoxUncheckedCommand = new CommunityToolkit.Mvvm.Input.RelayCommand<FileSystemItem>(CheckBox_Unchecked);
 
             fileSystemItems = new ObservableCollection<FileSystemItem>();
-            LoadFileSystemItems("C:\\Users\\User\\Downloads");
+            string path = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            LoadFileSystemItems(path);
         }
 
         [RelayCommand]
@@ -81,7 +82,7 @@ namespace Back_It_Up.ViewModels.Pages
                             Parent = null
                         };
                     }
-                    catch (UnauthorizedAccessException)
+                    catch (Exception)
                     {
                         return null;
                     }

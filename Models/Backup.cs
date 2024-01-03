@@ -476,7 +476,6 @@ namespace Back_It_Up.Models
 
         private async Task<string> ExtractBackupFileAndGetPath(FileSystemItem file, BackupVersion version)
         {
-            //LoadBackup();
             string zipFilePath = BackupVersions[0].BackupZipFilePath;
             string extractedFilePath = "";
 

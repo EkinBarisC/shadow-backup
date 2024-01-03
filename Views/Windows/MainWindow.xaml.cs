@@ -47,7 +47,6 @@ namespace Back_It_Up.Views.Windows
 
         private void OnBackupCreated(string backupName)
         {
-            //ViewModel.LoadBackupLocations();
             ShowSnackbarMessage("Backup Completed");
         }
         private void OnRestoreCreated(string backupName)
@@ -68,7 +67,6 @@ namespace Back_It_Up.Views.Windows
 
         private void NavigationView_SelectionChanged(NavigationView sender, RoutedEventArgs args)
         {
-            // Now use this content to determine what to do next
             if (sender.SelectedItem is NavigationViewItem selectedItem)
             {
                 BackupStore store = App.GetService<BackupStore>();

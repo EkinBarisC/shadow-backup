@@ -1155,6 +1155,7 @@ namespace Back_It_Up.Models
             {
                 DestinationPath = Path.GetDirectoryName(locations[index]);
                 readManifestFile(DestinationPath);
+                Messenger.Default.Send<BackupVersion>(BackupVersions[0], BackupStatus.Loaded);
             }
         }
 

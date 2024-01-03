@@ -49,7 +49,8 @@ namespace Back_It_Up.Models
         InProgress,
         Complete,
         Failed,
-        RestoreComplete
+        RestoreComplete,
+        Loaded
     }
 
 }

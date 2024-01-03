@@ -51,7 +51,6 @@ namespace Back_It_Up.ViewModels.Pages
         }
 
 
-
         private void OpenDestinationExplorer()
         {
             BackupStore store = App.GetService<BackupStore>();
@@ -90,7 +89,8 @@ namespace Back_It_Up.ViewModels.Pages
         public void LoadContents(BackupVersion backupVersion)
         {
             BackupStore store = App.GetService<BackupStore>();
-            store.SelectedBackup.LoadContents(_backupVersions[0]);
+            BackupVersions = store.SelectedBackup.BackupVersions;
+            store.SelectedBackup.LoadContents(BackupVersions[0]);
             _selectedVersion = backupVersion;
             FileSystemItems = store.SelectedBackup.BackupItems;
         }

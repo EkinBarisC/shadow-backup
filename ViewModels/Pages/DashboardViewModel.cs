@@ -30,7 +30,7 @@ namespace Back_It_Up.ViewModels.Pages
             {
                 Content = "Logs",
                 Icon = new SymbolIcon { Symbol = SymbolRegular.DataHistogram24 },
-                TargetPageType = typeof(Views.Pages.SettingsPage)
+                TargetPageType = typeof(Views.Pages.LogsPage)
             },
         };
     }

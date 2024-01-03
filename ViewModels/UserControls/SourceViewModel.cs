@@ -12,6 +12,7 @@ using Back_It_Up.Views.Pages;
 using Back_It_Up.Views.UserControls;
 using Back_It_Up.Views.Windows;
 using GalaSoft.MvvmLight.Messaging;
+using Serilog;
 using System.Collections.ObjectModel;
 using System.IO.Compression;
 using System.Text.Json;
@@ -52,10 +53,14 @@ namespace Back_It_Up.ViewModels.Pages
 
         private async void PerformBackup()
         {
+            Logger.Information("Backup Started");
             BackupStore store = App.GetService<BackupStore>();
             await store.SelectedBackup.PerformBackup();
             //send message backup complete
             Messenger.Default.Send<string>("Backup Complete", BackupStatus.Complete);
+            Logger.Information("Backup Completed");
+            Log.CloseAndFlush();
+
         }
 
 

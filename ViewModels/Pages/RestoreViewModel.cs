@@ -70,7 +70,7 @@ namespace Back_It_Up.ViewModels.Pages
         private async void Restore()
         {
             BackupStore store = App.GetService<BackupStore>();
-            await store.SelectedBackup.RestoreIncrementalBackup("restore", _selectedVersion);
+            await store.SelectedBackup.RestoreIncrementalBackup("restore", SelectedVersion);
             Messenger.Default.Send<string>("Restore Complete", BackupStatus.RestoreComplete);
 
         }
@@ -90,9 +90,10 @@ namespace Back_It_Up.ViewModels.Pages
         {
             BackupStore store = App.GetService<BackupStore>();
             BackupVersions = store.SelectedBackup.BackupVersions;
-            SelectedVersion = BackupVersions[0];
-            store.SelectedBackup.LoadContents(SelectedVersion);
+            SelectedVersion = backupVersion;
+            store.SelectedBackup.LoadContents(BackupVersions[0]);
             FileSystemItems = store.SelectedBackup.BackupItems;
+            //store.SelectedBackup.Version = backupVersion;
         }
 
     }

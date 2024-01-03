@@ -16,11 +16,15 @@
 
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition />
             <RowDefinition MaxHeight="300" />
             <RowDefinition />
         </Grid.RowDefinitions>
 
-        <TreeView Name="TreeViewSourceExplorer" Grid.Row="0" ItemsSource="{Binding ViewModel.fileSystemItems}" Height="300" >
+        <Button Content="Back" Command="{Binding ViewModel.NavigateToParentDirectoryCommand}" Grid.Row="0" />
+
+
+        <TreeView Name="TreeViewSourceExplorer" Grid.Row="1" ItemsSource="{Binding ViewModel.fileSystemItems}" Height="300" >
             <TreeView.ItemTemplate>
                 <HierarchicalDataTemplate ItemsSource="{Binding Children}">
                     <StackPanel Orientation="Horizontal">
@@ -45,7 +49,7 @@
             </TreeView.ItemContainerStyle>
         </TreeView>
 
-        <Button  Grid.Row="1" Content="Select" Command="{Binding ViewModel.ReturnToSourcePageCommand}" />
+        <Button  Grid.Row="2" Content="Select" Command="{Binding ViewModel.ReturnToSourcePageCommand}" />
 
     </Grid>
 </Page>

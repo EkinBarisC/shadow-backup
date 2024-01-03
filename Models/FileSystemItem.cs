@@ -128,10 +128,14 @@ namespace Back_It_Up.Models
         public void SetIsSelectedRecursively(bool isSelected)
         {
             this.IsSelected = isSelected;
-            foreach (var child in Children)
+            if (Children != null)
             {
-                child.SetIsSelectedRecursively(isSelected);
+                foreach (var child in Children)
+                {
+                    child.SetIsSelectedRecursively(isSelected);
+                }
             }
+
         }
 
         public void LoadContents()

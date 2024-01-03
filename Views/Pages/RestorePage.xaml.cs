@@ -1,4 +1,7 @@
-﻿using Back_It_Up.ViewModels.Pages;
+﻿using Back_It_Up.Models;
+using Back_It_Up.Stores;
+using Back_It_Up.ViewModels.Pages;
+using GalaSoft.MvvmLight.Messaging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,6 +31,15 @@ namespace Back_It_Up.Views.Pages
             ViewModel = viewModel;
             DataContext = this;
             InitializeComponent();
+            Messenger.Default.Register<BackupVersion>(this, BackupStatus.Loaded, OnBackupLoaded);
+
         }
+
+        private void OnBackupLoaded(BackupVersion version)
+        {
+            BackupStore store = App.GetService<BackupStore>();
+            ViewModel.LoadContents(store.SelectedBackup.BackupVersions[0]);
+        }
+
     }
 }

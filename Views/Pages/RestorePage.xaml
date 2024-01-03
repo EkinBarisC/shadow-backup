@@ -42,12 +42,12 @@
             </ui:DataGrid.Columns>
         </ui:DataGrid>
 
-        <TreeView x:Name="BackupContentsTreeView"  Grid.Column="1"  ItemsSource="{Binding ViewModel.FileSystemItems}" >
+        <TreeView x:Name="BackupContentsTreeView"  Grid.Column="1"  ItemsSource="{Binding ViewModel.FileSystemItems}" Height="350">
 
             <TreeView.ItemTemplate>
                 <HierarchicalDataTemplate ItemsSource="{Binding Children}">
                     <StackPanel Orientation="Horizontal">
-                        <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}">
+                        <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, Mode=TwoWay}">
                             <i:Interaction.Triggers>
                                 <i:EventTrigger EventName="Checked">
                                     <i:InvokeCommandAction Command="{Binding ViewModel.CheckBoxCheckedCommand, RelativeSource={RelativeSource AncestorType={x:Type local:RestorePage}} }" CommandParameter="{Binding}" />

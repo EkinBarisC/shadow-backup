@@ -22,6 +22,9 @@ namespace Back_It_Up.ViewModels.Pages
     {
         public ObservableCollection<FileSystemItem> fileSystemItems { get; set; }
 
+        [ObservableProperty]
+        private string currentPath;
+
         public ICommand ReturnToSourcePageCommand { get; set; }
         public ICommand CheckBoxCheckedCommand { get; set; }
         public ICommand CheckBoxUncheckedCommand { get; set; }
@@ -37,13 +40,31 @@ namespace Back_It_Up.ViewModels.Pages
             this.CheckBoxUncheckedCommand = new CommunityToolkit.Mvvm.Input.RelayCommand<FileSystemItem>(CheckBox_Unchecked);
 
             fileSystemItems = new ObservableCollection<FileSystemItem>();
-            LoadFileSystemItems("C:\\Users\\User");
+
+            string path = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            LoadFileSystemItems(path);
         }
 
+        [RelayCommand]
+        private void NavigateToParentDirectory()
+        {
+            if (string.IsNullOrEmpty(CurrentPath))
+            {
+                return;
+            }
+
+            var parentDir = Directory.GetParent(CurrentPath);
+            if (parentDir != null)
+            {
+                LoadFileSystemItems(parentDir.FullName);
+                CurrentPath = parentDir.FullName;
+            }
+        }
         private void LoadFileSystemItems(string path)
         {
             try
             {
+                CurrentPath = path;
                 var rootItems = Directory.GetFileSystemEntries(path).Select(item =>
                 {
                     try
@@ -60,7 +81,7 @@ namespace Back_It_Up.ViewModels.Pages
                             Parent = null
                         };
                     }
-                    catch (UnauthorizedAccessException)
+                    catch (Exception)
                     {
                         return null;
                     }

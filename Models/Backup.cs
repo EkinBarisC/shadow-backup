@@ -146,9 +146,7 @@ namespace Back_It_Up.Models
                     {
                         string relativePath = await GetRelativePathAsync(item.Name);
 
-                        // Normalize the path formats for comparison
                         string normalizedEntryPath = entry.FullName.Replace("/", "\\");
-                        //string normalizedItemPath = relativePath.Replace("\\", "/");
 
                         if (normalizedEntryPath.Equals(relativePath, StringComparison.OrdinalIgnoreCase))
                         {
@@ -182,7 +180,6 @@ namespace Back_It_Up.Models
                         continue;
                     }
 
-                    // Assuming patch files are named after the original files with an additional extension
                     string originalFileName = Path.GetFileNameWithoutExtension(patchEntry.FullName);
                     // Check if the original file is in the restore items list
                     if (!restoreItems.Any(item => item.Name.Equals(originalFileName, StringComparison.OrdinalIgnoreCase)))
@@ -236,9 +233,7 @@ namespace Back_It_Up.Models
                         // Skip metadata file
                         continue;
                     }
-                    // Assuming patch files are named after the original files with an additional extension
                     string originalFileName = Path.GetFileNameWithoutExtension(patchEntry.FullName);
-                    //here eger parenti yoksa hata veriyor artı parentın parenı varsa da hata verir baska bir yol bulmak lazım
                     string originalFilePath = Path.Combine(restoreDirectory, originalFileName);
 
                     string denemeFilePath = await GetHierarchicalPathAsync(restoreDirectory, originalFileName);
@@ -293,17 +288,15 @@ namespace Back_It_Up.Models
 
             var parentItem = metadata
                 .Where(m => currentPath.StartsWith(m.Path + "\\", StringComparison.OrdinalIgnoreCase) && m.Type == "folder")
-                .OrderByDescending(m => m.Path.Length) // Ensure the closest parent is selected
+                .OrderByDescending(m => m.Path.Length)
                 .FirstOrDefault();
 
             if (parentItem == null || parentItem.Path.Equals(rootPath, StringComparison.OrdinalIgnoreCase))
             {
-                return Path.GetFileName(Path.GetDirectoryName(currentPath)); // Get the file name or top-level directory name
+                return Path.GetFileName(Path.GetDirectoryName(currentPath));
             }
 
-            // Recursively build the path from the parent
             string parentPath = BuildHierarchicalPath(parentItem.Path, rootPath, metadata);
-            //string currentRelativePath = currentPath.Replace(parentItem.Path + "\\", "");
             string currentRelativePath = GetRelativePathFromRoot(parentItem.Path, parentPath);
 
             return currentRelativePath;
@@ -318,7 +311,6 @@ namespace Back_It_Up.Models
                 throw new ArgumentException("Root folder not found in the provided path.");
             }
 
-            // Include the length of the rootFolderName and the trailing slash in the substring
             string relativePath = fullPath.Substring(rootIndex);
 
             return relativePath;
@@ -474,46 +466,6 @@ namespace Back_It_Up.Models
             File.Delete(patchFilePath + ".sig");
         }
 
-        private async Task<string> ExtractBackupFileAndGetPath(FileSystemItem file, BackupVersion version)
-        {
-            //LoadBackup();
-            string zipFilePath = BackupVersions[0].BackupZipFilePath;
-            string extractedFilePath = "";
-
-            // Define a temporary directory within the backup directory
-            string tempDirectoryPath = Path.Combine(DestinationPath, BackupName, "temp");
-            if (!Directory.Exists(tempDirectoryPath))
-            {
-                Directory.CreateDirectory(tempDirectoryPath);
-            }
-
-            using (ZipArchive archive = ZipFile.OpenRead(zipFilePath))
-            {
-                ZipArchiveEntry metadataEntry = archive.GetEntry("metadata.json");
-                using (var reader = new StreamReader(metadataEntry.Open()))
-                {
-                    string metadataJson = await reader.ReadToEndAsync();
-                    var metadataItems = JsonSerializer.Deserialize<List<MetadataItem>>(metadataJson);
-
-                    var item = metadataItems.FirstOrDefault(m => m.Path == file.Path && m.Type == "file");
-                    if (item != null)
-                    {
-                        string entryName = GetEntryNameFromMetadata(item);
-                        var zipEntry = archive.GetEntry(entryName);
-
-                        if (zipEntry != null)
-                        {
-                            string fullExtractPath = Path.Combine(tempDirectoryPath, Path.GetFileName(file.Path));
-
-                            zipEntry.ExtractToFile(fullExtractPath, overwrite: true); // Extract the file
-                            extractedFilePath = fullExtractPath; // Set the extracted file path
-                        }
-                    }
-                }
-            }
-
-            return extractedFilePath; // Return the path of the extracted file
-        }
 
         public async Task PerformFullBackup()
         {
@@ -661,53 +613,15 @@ namespace Back_It_Up.Models
             return File.Exists(metadataFilePath);
         }
 
-        public async Task PerformRestore()
-        {
-            string zipFilePath = Version.BackupZipFilePath; // Assuming Version is defined and holds the correct data
 
-            using (ZipArchive archive = ZipFile.OpenRead(zipFilePath))
-            {
-                var metadataEntry = archive.GetEntry("metadata.json");
-
-                using (var reader = new StreamReader(metadataEntry.Open()))
-                {
-                    string metadataJson = await reader.ReadToEndAsync();
-                    var metadataItems = JsonSerializer.Deserialize<List<MetadataItem>>(metadataJson);
-
-                    foreach (var item in metadataItems)
-                    {
-                        if (item.Type == "file")
-                        {
-                            string entryName = GetEntryNameFromMetadata(item);
-                            var zipEntry = archive.GetEntry(entryName);
-
-                            if (zipEntry != null)
-                            {
-                                string fullRestorePath = Path.Combine(RestorePath, entryName);
-                                string directoryPath = Path.GetDirectoryName(fullRestorePath);
-
-                                if (!Directory.Exists(directoryPath))
-                                {
-                                    Directory.CreateDirectory(directoryPath);
-                                }
-
-                                zipEntry.ExtractToFile(fullRestorePath, true); // Extract the file
-                            }
-                        }
-                    }
-                }
-            }
-        }
         private string GetEntryNameFromMetadata(MetadataItem item)
         {
-            // Assuming the RootPath is the path to the root of the backup
             string backupRoot = Path.GetDirectoryName(item.RootPath);
 
             if (!string.IsNullOrEmpty(backupRoot))
             {
-                // Remove the backup root part from the item's path
                 string relativePath = item.Path.Substring(backupRoot.Length).TrimStart(Path.DirectorySeparatorChar);
-                return relativePath.Replace("\\", "/"); // Convert to ZIP format (forward slashes)
+                return relativePath.Replace("\\", "/");
             }
 
             return string.Empty;
@@ -808,15 +722,11 @@ namespace Back_It_Up.Models
 
             try
             {
-                // Asynchronously create directory and write metadata file
-                // Adjust to work with KernelTransaction if necessary
                 Directory.CreateDirectory(backupNameFolderPath);
                 await System.IO.File.WriteAllTextAsync(metadataFilePath, metadataJson);
             }
             catch (Exception ex)
             {
-                // Handle any exceptions, possibly rolling back if needed
-                // Log the error
                 Console.WriteLine($"Error creating metadata: {ex.Message}");
             }
         }
@@ -825,7 +735,7 @@ namespace Back_It_Up.Models
 
         private async Task AddItemAndChildrenToMetadata(FileSystemItem item, List<MetadataItem> metadataList, string rootPath)
         {
-            var checksum = item.IsFolder ? "" : await CalculateFileChecksum(item.Path); // Calculate checksum for files
+            var checksum = item.IsFolder ? "" : await CalculateFileChecksum(item.Path);
             string type = item.IsFolder ? "folder" : "file";
             metadataList.Add(new MetadataItem
             {
@@ -1017,7 +927,6 @@ namespace Back_It_Up.Models
             if (backupItems == null)
                 return fileSystemItems;
 
-            // Process the backup items from JSON
             foreach (var item in backupItems)
             {
                 if (item.Path != null && Path.GetFileName(item.Path) != "metadata.json")
@@ -1027,10 +936,8 @@ namespace Back_It_Up.Models
                         Path = item.Path,
                         Name = System.IO.Path.GetFileName(item.Path),
                         IsFolder = item.Type == "folder",
-                        // Other properties can be set as needed
                     };
 
-                    // Add to the parent's children or directly to the fileSystemItems
                     var parentDir = System.IO.Path.GetDirectoryName(item.Path);
                     var parentItem = FindItemByPath(fileSystemItems, parentDir);
                     if (parentItem != null)
@@ -1044,7 +951,6 @@ namespace Back_It_Up.Models
                 }
             }
 
-            // Update folder contents by scanning the actual file system
             UpdateFolderChildrenRecursively(fileSystemItems);
 
             return fileSystemItems;
@@ -1057,7 +963,7 @@ namespace Back_It_Up.Models
                 if (item.IsFolder)
                 {
                     UpdateFolderChildren(item);
-                    UpdateFolderChildrenRecursively(item.Children); // Recursive call for nested folders
+                    UpdateFolderChildrenRecursively(item.Children);
                 }
             }
         }
@@ -1121,6 +1027,7 @@ namespace Back_It_Up.Models
             string metadata = await ReadMetadataFromZip(zipFilePath);
             ObservableCollection<FileSystemItem> FileSystemItems = CreateFileSystemItemsFromJson(metadata);
             BackupItems = FileSystemItems;
+            BackupSetting = new BackupSetting();
             BackupSetting.SelectedBackupMethod = Version.BackupMethod;
         }
 
@@ -1149,12 +1056,12 @@ namespace Back_It_Up.Models
             List<string> backupNames = locations.Select(path => Path.GetFileNameWithoutExtension(path)).ToList();
             List<string> backupLocations = backupNames.ToList();
 
-            //check if BackupName is in backupNames if so use index to return location from locations
             int index = backupLocations.FindIndex(x => x == BackupName);
             if (index != -1)
             {
                 DestinationPath = Path.GetDirectoryName(locations[index]);
                 readManifestFile(DestinationPath);
+                Messenger.Default.Send<BackupVersion>(BackupVersions[0], BackupStatus.Loaded);
             }
         }
 

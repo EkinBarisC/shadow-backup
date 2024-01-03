@@ -51,7 +51,6 @@ namespace Back_It_Up.ViewModels.Pages
         }
 
 
-
         private void OpenDestinationExplorer()
         {
             BackupStore store = App.GetService<BackupStore>();
@@ -71,7 +70,7 @@ namespace Back_It_Up.ViewModels.Pages
         private async void Restore()
         {
             BackupStore store = App.GetService<BackupStore>();
-            await store.SelectedBackup.RestoreIncrementalBackup("restore", _selectedVersion);
+            await store.SelectedBackup.RestoreIncrementalBackup("restore", SelectedVersion);
             Messenger.Default.Send<string>("Restore Complete", BackupStatus.RestoreComplete);
 
         }
@@ -79,19 +78,48 @@ namespace Back_It_Up.ViewModels.Pages
         private void CheckBoxChecked(FileSystemItem dataItem)
         {
             BackupStore store = App.GetService<BackupStore>();
-            store.SelectedBackup.RestoreItems.Add(dataItem);
+            dataItem.SetIsSelectedRecursively(true);
+            AddItemWithChildrenToRestoreItems(dataItem, store.SelectedBackup.RestoreItems);
         }
         private void CheckBoxUnchecked(FileSystemItem dataItem)
         {
+            dataItem.SetIsSelectedRecursively(false);
+
             BackupStore store = App.GetService<BackupStore>();
-            store.SelectedBackup.RestoreItems.Remove(dataItem);
+            RemoveItemWithChildrenFromRestoreItems(dataItem, store.SelectedBackup.RestoreItems);
         }
+
+        private void AddItemWithChildrenToRestoreItems(FileSystemItem item, ObservableCollection<FileSystemItem> restoreItems)
+        {
+            if (!restoreItems.Contains(item))
+            {
+                restoreItems.Add(item);
+            }
+            foreach (var child in item.Children)
+            {
+                AddItemWithChildrenToRestoreItems(child, restoreItems);
+            }
+        }
+
+        private void RemoveItemWithChildrenFromRestoreItems(FileSystemItem item, ObservableCollection<FileSystemItem> restoreItems)
+        {
+            if (restoreItems.Contains(item))
+            {
+                restoreItems.Remove(item);
+            }
+            foreach (var child in item.Children)
+            {
+                RemoveItemWithChildrenFromRestoreItems(child, restoreItems);
+            }
+        }
+
         [RelayCommand]
         public void LoadContents(BackupVersion backupVersion)
         {
             BackupStore store = App.GetService<BackupStore>();
-            store.SelectedBackup.LoadContents(_backupVersions[0]);
-            _selectedVersion = backupVersion;
+            BackupVersions = store.SelectedBackup.BackupVersions;
+            SelectedVersion = backupVersion;
+            store.SelectedBackup.LoadContents(BackupVersions[0]);
             FileSystemItems = store.SelectedBackup.BackupItems;
         }
 

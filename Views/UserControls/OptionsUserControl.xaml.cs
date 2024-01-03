@@ -1,4 +1,7 @@
-﻿using Back_It_Up.ViewModels.UserControls;
+﻿using Back_It_Up.Models;
+using Back_It_Up.Stores;
+using Back_It_Up.ViewModels.UserControls;
+using GalaSoft.MvvmLight.Messaging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,15 +30,15 @@ namespace Back_It_Up.Views.UserControls
             ViewModel = viewModel;
             DataContext = this;
             InitializeComponent();
+            Messenger.Default.Register<BackupVersion>(this, BackupStatus.Loaded, OnBackupLoaded);
+
         }
 
-        //private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
-        //{
-        //    if (sender is TextBox textBox)
-        //    {
-        //        ViewModel.BackupSetting.FullBackupFrequency = textBox.Text;
-        //    }
-        //}
+        private void OnBackupLoaded(BackupVersion version)
+        {
+            BackupStore store = App.GetService<BackupStore>();
+            ViewModel.BackupSetting = store.SelectedBackup.BackupSetting;
+        }
 
         private void NumberBox_ValueChanged(object sender, RoutedEventArgs e)
         {

@@ -30,7 +30,7 @@ namespace Back_It_Up.Models
         public ObservableCollection<FileSystemItem> BackupItems = new ObservableCollection<FileSystemItem>();
         public ObservableCollection<FileSystemItem> RestoreItems = new ObservableCollection<FileSystemItem>();
         public string DestinationPath;
-        public string RestorePath = "C:\\Users\\User\\Documents\\restores";
+        public string RestorePath;
         public BackupSetting BackupSetting = new BackupSetting();
         public string BackupName;
         public List<BackupVersion> BackupVersions;

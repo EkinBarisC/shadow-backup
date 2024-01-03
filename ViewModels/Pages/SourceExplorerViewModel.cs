@@ -22,6 +22,9 @@ namespace Back_It_Up.ViewModels.Pages
     {
         public ObservableCollection<FileSystemItem> fileSystemItems { get; set; }
 
+        [ObservableProperty]
+        private string currentPath;
+
         public ICommand ReturnToSourcePageCommand { get; set; }
         public ICommand CheckBoxCheckedCommand { get; set; }
         public ICommand CheckBoxUncheckedCommand { get; set; }
@@ -40,10 +43,28 @@ namespace Back_It_Up.ViewModels.Pages
             LoadFileSystemItems("C:\\Users\\User\\Downloads");
         }
 
+        [RelayCommand]
+        private void NavigateToParentDirectory()
+        {
+            if (string.IsNullOrEmpty(CurrentPath))
+            {
+                return;
+            }
+
+            var parentDir = Directory.GetParent(CurrentPath);
+            if (parentDir != null)
+            {
+                LoadFileSystemItems(parentDir.FullName);
+                CurrentPath = parentDir.FullName;
+            }
+        }
+
+
         private void LoadFileSystemItems(string path)
         {
             try
             {
+                CurrentPath = path;
                 var rootItems = Directory.GetFileSystemEntries(path).Select(item =>
                 {
                     try

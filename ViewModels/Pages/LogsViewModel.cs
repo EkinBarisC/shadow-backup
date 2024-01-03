@@ -1,20 +1,22 @@
-﻿using Back_It_Up.Models;
+﻿using Back_It_Up;
+using Back_It_Up.Models;
+using Back_It_Up.Stores;
+using Back_It_Up.ViewModels.Pages;
+using Back_It_Up.Views.Pages;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Collections.ObjectModel;
 
 public partial class LogsViewModel : ObservableObject
 {
-    private ObservableCollection<LogEntry> _logs;
+    [ObservableProperty]
+    private ObservableCollection<LogEntry> logs;
 
-    public ObservableCollection<LogEntry> Logs
-    {
-        get => _logs;
-        set => SetProperty(ref _logs, value);
-    }
+    private readonly INavigationService _navigationService;
 
-    public LogsViewModel()
+    public LogsViewModel(INavigationService navigationService)
     {
         LoadLogs();
+        _navigationService = navigationService;
     }
 
     private void LoadLogs()
@@ -34,6 +36,16 @@ public partial class LogsViewModel : ObservableObject
             }
         }
     }
+
+    [RelayCommand]
+    private void OpenLogDetails(LogEntry logEntry)
+    {
+        // Navigate to LogDetailsPage with the selected log entry
+        BackupStore store = App.GetService<BackupStore>();
+        store.CurrentLogEntry = logEntry;
+        _navigationService.Navigate(typeof(LogDetailsPage));
+    }
+
 
     private LogEntry ParseLogLine(string line)
     {

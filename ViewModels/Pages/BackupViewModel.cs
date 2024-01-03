@@ -50,6 +50,7 @@ namespace Back_It_Up.ViewModels.Pages
         "Source",
         "Options",
         "Schedule",
+        "Encrypt",
         ""
     };
         }
@@ -67,7 +68,9 @@ namespace Back_It_Up.ViewModels.Pages
                 case "Schedule":
                     CurrentView = new ScheduleUserControl();
                     break;
-                    // Add more cases as needed
+                case "Encrypt":
+                    CurrentView = new EncryptUserControl(new EncryptViewModel());
+                    break;
             }
         }
 

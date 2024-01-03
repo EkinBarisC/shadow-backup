@@ -90,8 +90,8 @@ namespace Back_It_Up.ViewModels.Pages
         {
             BackupStore store = App.GetService<BackupStore>();
             BackupVersions = store.SelectedBackup.BackupVersions;
-            store.SelectedBackup.LoadContents(BackupVersions[0]);
-            _selectedVersion = backupVersion;
+            SelectedVersion = BackupVersions[0];
+            store.SelectedBackup.LoadContents(SelectedVersion);
             FileSystemItems = store.SelectedBackup.BackupItems;
         }
 

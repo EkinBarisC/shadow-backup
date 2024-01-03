@@ -1121,6 +1121,7 @@ namespace Back_It_Up.Models
             string metadata = await ReadMetadataFromZip(zipFilePath);
             ObservableCollection<FileSystemItem> FileSystemItems = CreateFileSystemItemsFromJson(metadata);
             BackupItems = FileSystemItems;
+            BackupSetting = new BackupSetting();
             BackupSetting.SelectedBackupMethod = Version.BackupMethod;
         }
 

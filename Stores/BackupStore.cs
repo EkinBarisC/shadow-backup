@@ -19,5 +19,7 @@ namespace Back_It_Up.Stores
             Backup, Restore, Find
         }
         public ExplorerContext CurrentContext { get; set; }
+
+        public LogEntry CurrentLogEntry { get; set; }
     }
 }

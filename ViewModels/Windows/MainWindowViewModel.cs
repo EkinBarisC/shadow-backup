@@ -50,14 +50,8 @@ namespace Back_It_Up.ViewModels.Windows
             LoadBackupLocations();
         }
 
-        public void NavigateTo(Type targetType)
-        {
-
-        }
-
         public void LoadBackupLocations()
         {
-            // Clear existing backup-related items from MenuItems
             var backupItems = MenuItems.OfType<NavigationViewItem>()
                                        .Where(item => item.Tag is string && ((string)item.Tag).StartsWith("backup_"))
                                        .ToList();

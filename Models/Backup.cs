@@ -30,7 +30,7 @@ namespace Back_It_Up.Models
         public ObservableCollection<FileSystemItem> BackupItems = new ObservableCollection<FileSystemItem>();
         public ObservableCollection<FileSystemItem> RestoreItems = new ObservableCollection<FileSystemItem>();
         public string DestinationPath;
-        public string RestorePath = "C:\\Users\\User\\Documents\\restores";
+        public string RestorePath;
         public BackupSetting BackupSetting = new BackupSetting();
         public string BackupName;
         public List<BackupVersion> BackupVersions;
@@ -262,45 +262,106 @@ namespace Back_It_Up.Models
             }
 
             string hierarchicalPath = BuildHierarchicalPath(fileMetadata.Path, fileMetadata.RootPath, fullMetadata);
-            return Path.Combine(hierarchicalPath, fileName);
+            return hierarchicalPath;
         }
-
 
         private async Task<string> GetHierarchicalPathAsync(string restoreDirectory, string fileName)
         {
-            List<MetadataItem> fullMetadata = await LoadPreviousBackupMetadata("first");
-            var fileMetadata = fullMetadata.FirstOrDefault(m => Path.GetFileName(m.Path) == fileName && m.Type == "file");
-            if (fileMetadata == null)
+            // Load the metadata for all backups, or just the necessary ones.
+
+            foreach (var version in BackupVersions) // Assuming each version has a Date property
             {
-                return Path.Combine(restoreDirectory, fileName);
+
+                string metadataJson = await ReadMetadataFromZip(version.BackupZipFilePath);
+                List<MetadataItem> metadata = JsonSerializer.Deserialize<List<MetadataItem>>(metadataJson) ?? new List<MetadataItem>();
+
+                //here
+                var fileMetadata = metadata.FirstOrDefault(m => Path.GetFileName(m.Path) == fileName && m.Type == "file");
+
+                if (fileMetadata != null)
+                {
+                    string hierarchicalPath = BuildHierarchicalPath(fileMetadata.Path, fileMetadata.RootPath, metadata);
+                    return Path.Combine(restoreDirectory, hierarchicalPath);
+                }
             }
 
-            string hierarchicalPath = BuildHierarchicalPath(fileMetadata.Path, fileMetadata.RootPath, fullMetadata);
-            return Path.Combine(restoreDirectory, hierarchicalPath, fileName);
+            // If the file wasn't found in any backup, fallback to the default behavior.
+            return Path.Combine(restoreDirectory, fileName);
         }
+
+
+        //private async Task<string> GetHierarchicalPathAsync(string restoreDirectory, string fileName)
+        //{
+        //    List<MetadataItem> fullMetadata = await LoadPreviousBackupMetadata("first");
+        //    var fileMetadata = fullMetadata.FirstOrDefault(m => Path.GetFileName(m.Path) == fileName && m.Type == "file");
+        //    if (fileMetadata == null)
+        //    {
+        //        return Path.Combine(restoreDirectory, fileName);
+        //    }
+
+        //    string hierarchicalPath = BuildHierarchicalPath(fileMetadata.Path, fileMetadata.RootPath, fullMetadata);
+        //    return Path.Combine(restoreDirectory, hierarchicalPath, fileName);
+        //}
+
+        //private string BuildHierarchicalPath(string currentPath, string rootPath, List<MetadataItem> metadata)
+        //{
+        //    if (currentPath.Equals(rootPath, StringComparison.OrdinalIgnoreCase))
+        //    {
+        //        return "";
+        //    }
+
+        //    var parentItem = metadata
+        //        .Where(m => currentPath.StartsWith(m.Path + "\\", StringComparison.OrdinalIgnoreCase) && m.Type == "folder")
+        //        .OrderByDescending(m => m.Path.Length)
+        //        .FirstOrDefault();
+
+        //    if (parentItem == null || parentItem.Path.Equals(rootPath, StringComparison.OrdinalIgnoreCase))
+        //    {
+        //        return Path.GetFileName(Path.GetDirectoryName(currentPath));
+        //    }
+
+        //    string parentPath = BuildHierarchicalPath(parentItem.Path, rootPath, metadata);
+        //    string currentRelativePath = GetRelativePathFromRoot(parentItem.Path, parentPath);
+
+        //    return currentRelativePath;
+        //}
 
         private string BuildHierarchicalPath(string currentPath, string rootPath, List<MetadataItem> metadata)
         {
-            if (currentPath.Equals(rootPath, StringComparison.OrdinalIgnoreCase))
+            var formattedRootPath = rootPath.TrimEnd('\\');
+            var formattedCurrentPath = currentPath.TrimEnd('\\');
+
+            if (formattedCurrentPath.Equals(formattedRootPath, StringComparison.OrdinalIgnoreCase))
             {
-                return "";
+                return Path.GetFileName(formattedRootPath); // Return the last part of rootPath
+            }
+
+            if (formattedCurrentPath.StartsWith(formattedRootPath, StringComparison.OrdinalIgnoreCase))
+            {
+                var relativePath = formattedCurrentPath.Substring(formattedRootPath.Length).TrimStart('\\');
+                string trimmedRootPath = Path.GetFileName(formattedRootPath);
+                string result = Path.Combine(trimmedRootPath, relativePath); // Include last part of rootPath
+                return result;
             }
 
             var parentItem = metadata
-                .Where(m => currentPath.StartsWith(m.Path + "\\", StringComparison.OrdinalIgnoreCase) && m.Type == "folder")
-                .OrderByDescending(m => m.Path.Length)
+                .Where(m => formattedCurrentPath.StartsWith(m.Path + "\\", StringComparison.OrdinalIgnoreCase) && m.Type == "folder")
+                .OrderByDescending(m => m.Path.Length) // Ensure the closest parent is selected
                 .FirstOrDefault();
 
-            if (parentItem == null || parentItem.Path.Equals(rootPath, StringComparison.OrdinalIgnoreCase))
+            if (parentItem == null)
             {
-                return Path.GetFileName(Path.GetDirectoryName(currentPath));
+                return Path.GetFileName(formattedCurrentPath); // Return just the file/folder name if no parent found
             }
 
-            string parentPath = BuildHierarchicalPath(parentItem.Path, rootPath, metadata);
-            string currentRelativePath = GetRelativePathFromRoot(parentItem.Path, parentPath);
+            string parentPath = BuildHierarchicalPath(parentItem.Path, formattedRootPath, metadata);
+            string currentRelativePath = parentItem.Path.Equals(formattedRootPath, StringComparison.OrdinalIgnoreCase)
+                ? Path.GetFileName(formattedCurrentPath)
+                : Path.Combine(parentPath, Path.GetFileName(formattedCurrentPath));
 
             return currentRelativePath;
         }
+
 
 
         private string GetRelativePathFromRoot(string fullPath, string rootFolderName)
@@ -666,14 +727,31 @@ namespace Back_It_Up.Models
             return newVersionNumber;
         }
 
+        public async Task<string> FindRootPathForChangedItem(string changedItemPath)
+        {
+            // Load metadata from the first backup
+            List<MetadataItem> firstBackupMetadata = await LoadPreviousBackupMetadata("first");
 
+            // Find the root path for the changed item
+            foreach (var metadataItem in firstBackupMetadata)
+            {
+                if (changedItemPath.StartsWith(metadataItem.Path, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Return the root path if a matching path is found
+                    return metadataItem.RootPath;
+                }
+            }
+
+            // If no matching root path is found, return null or an appropriate default
+            return null;
+        }
         public async Task CreateIncrementalMetadata(List<FileSystemItem> changedFiles)
         {
             List<MetadataItem> metadataList = new List<MetadataItem>();
 
             foreach (FileSystemItem changedFile in changedFiles)
             {
-                await AddItemAndChildrenToMetadata(changedFile, metadataList, changedFile.Path);
+                await AddItemAndChildrenToMetadata(changedFile, metadataList, await FindRootPathForChangedItem(changedFile.Path));
             }
 
             string metadataJson = JsonSerializer.Serialize(metadataList, new JsonSerializerOptions

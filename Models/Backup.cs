@@ -533,6 +533,7 @@ namespace Back_It_Up.Models
             int version = await CreateManifest(BackupSetting.SelectedBackupMethod);
             await CreateMetadata();
             await FullBackup();
+
             await CreateZipArchive(version);
             await WriteBackupLocation();
         }
@@ -596,7 +597,7 @@ namespace Back_It_Up.Models
             using (var md5 = MD5.Create())
             {
                 // Open the file asynchronously with AlphaFS
-                using (var stream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous))
+                using (var stream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 128 * 1024, FileOptions.Asynchronous))
                 {
                     // Read and compute the hash asynchronously
                     var hash = await md5.ComputeHashAsync(stream);
@@ -884,8 +885,8 @@ namespace Back_It_Up.Models
 
         private async Task CopyFileAsync(string sourcePath, string destinationPath)
         {
-            using (var sourceStream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 4096, useAsync: true))
-            using (var destStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 4096, useAsync: true))
+            using (var sourceStream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 128 * 1024, useAsync: true))
+            using (var destStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 128 * 1024, useAsync: true))
             {
                 await sourceStream.CopyToAsync(destStream);
             }

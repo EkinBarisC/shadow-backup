@@ -11,7 +11,7 @@ namespace Back_It_Up.Models
         public int Version { get; set; }
         public string BackupZipFilePath { get; set; }
         public DateTime DateCreated { get; set; }
-        public BackupMethod BackupMethod { get; set; }
+        public BackupSetting BackupSetting { get; set; }
 
     }
 }

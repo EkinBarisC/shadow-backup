@@ -47,11 +47,22 @@ namespace Back_It_Up.Models
                     break;
 
                 case BackupMethod.Incremental:
-
                     if (DoesPreviousBackupExist())
                     {
-                        await RestoreIncrementalBackup("backup", Version);
-                        await PerformIncrementalBackup();
+                        // Check if it's time for a periodic full backup
+                        if (BackupSetting.SelectedBackupScheme == BackupScheme.PeriodicFullBackup &&
+                            ShouldPerformPeriodicFullBackup())
+                        {
+                            // Perform a full backup
+                            await CleanUpOldBackups();
+                            await PerformFullBackup();
+                        }
+                        else
+                        {
+                            // Perform an incremental backup
+                            await RestoreIncrementalBackup("backup", Version);
+                            await PerformIncrementalBackup();
+                        }
                     }
                     else
                     {
@@ -62,6 +73,40 @@ namespace Back_It_Up.Models
                 default:
                     throw new InvalidOperationException("Unknown backup method.");
             }
+        }
+
+        private bool ShouldPerformPeriodicFullBackup()
+        {
+            // Calculate the number of incremental backups since the last full backup
+            int incrementalCount = BackupVersions.Count();
+
+            // Check if the number of incremental backups has reached the frequency limit
+            return BackupSetting.FullBackupFrequency.HasValue &&
+                   incrementalCount >= BackupSetting.FullBackupFrequency.Value;
+        }
+
+        private async Task CleanUpOldBackups()
+        {
+            string backupFolderPath = Path.Combine(DestinationPath, BackupName);
+
+            // Load the current manifest
+            //List<BackupVersion> currentVersions = await ReadManifestFileAsync();
+
+
+            // Delete the old backup ZIP files and remove them from the manifest
+            foreach (var backup in BackupVersions.ToList())
+            {
+                string zipPath = Path.Combine(backupFolderPath, backup.BackupZipFilePath);
+                if (File.Exists(zipPath))
+                {
+                    File.Delete(zipPath);
+                }
+                BackupVersions.Remove(backup);
+            }
+
+            // Save the updated manifest
+            string manifestPath = Path.Combine(backupFolderPath, "manifest.json");
+            System.IO.File.Delete(manifestPath);
         }
 
 
@@ -530,7 +575,7 @@ namespace Back_It_Up.Models
 
         public async Task PerformFullBackup()
         {
-            int version = await CreateManifest(BackupSetting.SelectedBackupMethod);
+            int version = await CreateManifest();
             await CreateMetadata();
             await FullBackup();
 
@@ -690,7 +735,7 @@ namespace Back_It_Up.Models
         }
 
 
-        public async Task<int> CreateManifest(BackupMethod method)
+        public async Task<int> CreateManifest()
         {
             string destinationFolder = Path.Combine(DestinationPath, BackupName);
             if (!Directory.Exists(destinationFolder))
@@ -717,7 +762,7 @@ namespace Back_It_Up.Models
                 Version = newVersionNumber,
                 DateCreated = DateTime.Now,
                 BackupZipFilePath = Path.Combine(destinationFolder, $"v{newVersionNumber}.zip"),
-                BackupMethod = method
+                BackupSetting = BackupSetting
             };
 
             backupVersions.Add(newVersion);
@@ -1107,7 +1152,7 @@ namespace Back_It_Up.Models
             ObservableCollection<FileSystemItem> FileSystemItems = CreateFileSystemItemsFromJson(metadata);
             BackupItems = FileSystemItems;
             BackupSetting = new BackupSetting();
-            BackupSetting.SelectedBackupMethod = Version.BackupMethod;
+            BackupSetting = Version.BackupSetting;
         }
 
         private FileSystemItem FindItemByPath(ObservableCollection<FileSystemItem> items, string path)

@@ -75,9 +75,26 @@ namespace Back_It_Up
         /// <summary>
         /// Occurs when the application is loading.
         /// </summary>
-        private void OnStartup(object sender, StartupEventArgs e)
+        private async void OnStartup(object sender, StartupEventArgs e)
         {
+            if (e.Args.Length > 0 && e.Args[0] == "-s")
+            {
+                // Assume the second argument is the backup name
+                string backupName = e.Args.Length > 1 ? e.Args[1] : string.Empty;
+
+                // Perform backup logic
+                BackupStore store = App.GetService<BackupStore>();
+                await store.SelectedBackup.PerformScheduledBackup(backupName);
+
+                // Shutdown the application after the backup is complete
+                Current.Shutdown();
+                return;
+            }
+
+            // Normal startup
             _host.Start();
+            var mainWindow = _host.Services.GetRequiredService<MainWindow>();
+            mainWindow.Show();
         }
 
         /// <summary>

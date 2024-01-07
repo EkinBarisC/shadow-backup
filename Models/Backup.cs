@@ -22,6 +22,8 @@ using System.Windows.Media.Animation;
 using Directory = Alphaleonis.Win32.Filesystem.Directory;
 using File = Alphaleonis.Win32.Filesystem.File;
 using Path = Alphaleonis.Win32.Filesystem.Path;
+using Task = System.Threading.Tasks.Task;
+using Microsoft.Win32.TaskScheduler;
 
 namespace Back_It_Up.Models
 {
@@ -35,6 +37,13 @@ namespace Back_It_Up.Models
         public string BackupName;
         public List<BackupVersion> BackupVersions;
         public BackupVersion Version;
+
+        public async Task PerformScheduledBackup(string backupName)
+        {
+            BackupName = backupName;
+            LoadBackup();
+            await PerformBackup();
+        }
 
         public async Task PerformBackup()
         {
@@ -78,6 +87,28 @@ namespace Back_It_Up.Models
                     throw new InvalidOperationException("Unknown backup method.");
             }
         }
+
+
+        public void CreateBackupTask(string taskName, string executablePath, string arguments, DateTime startTime, TimeSpan repeatInterval)
+        {
+            using (TaskService ts = new TaskService())
+            {
+                TaskDefinition td = ts.NewTask();
+                td.RegistrationInfo.Description = "Perform scheduled backup";
+
+                // Create a trigger that will execute very day at a specified time
+                DailyTrigger dt = new DailyTrigger { DaysInterval = 1 };
+                dt.StartBoundary = startTime;
+                td.Triggers.Add(dt);
+
+                // Create an action that will launch the application
+                td.Actions.Add(new ExecAction(executablePath, arguments, null));
+
+                // Register the task in the root folder of the Task Scheduler
+                ts.RootFolder.RegisterTaskDefinition(taskName, td);
+            }
+        }
+
 
         private async Task DeleteBackupsOlderThan(int days)
         {

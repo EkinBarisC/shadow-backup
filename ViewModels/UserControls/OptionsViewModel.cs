@@ -13,7 +13,7 @@ namespace Back_It_Up.ViewModels.UserControls
 
 
         [ObservableProperty]
-        private BackupSetting backupSetting;
+        private BackupSetting backupSetting = new BackupSetting();
 
         public OptionsViewModel()
         {

@@ -43,6 +43,10 @@ namespace Back_It_Up.Models
             switch (BackupSetting.SelectedBackupMethod)
             {
                 case BackupMethod.Full:
+                    if (BackupSetting.SelectedCleaningOption == CleaningOption.CleanUpOldBackups && BackupSetting.DaysToKeepBackups.HasValue)
+                    {
+                        await DeleteBackupsOlderThan(BackupSetting.DaysToKeepBackups.Value);
+                    }
                     await PerformFullBackup();
                     break;
 
@@ -75,6 +79,37 @@ namespace Back_It_Up.Models
             }
         }
 
+        private async Task DeleteBackupsOlderThan(int days)
+        {
+            string backupFolderPath = Path.Combine(DestinationPath, BackupName);
+
+            // Load the current manifest
+            List<BackupVersion> currentVersions = await ReadManifestFileAsync();
+
+            // Calculate the threshold date
+            DateTime thresholdDate = DateTime.Now.AddDays(-days);
+
+            // Identify backups older than the threshold
+            var oldBackups = currentVersions.Where(version => version.DateCreated < thresholdDate);
+
+            // Delete the old backup ZIP files and remove them from the manifest
+            foreach (var backup in oldBackups.ToList())
+            {
+                string zipPath = Path.Combine(backupFolderPath, backup.BackupZipFilePath);
+                if (File.Exists(zipPath))
+                {
+                    File.Delete(zipPath);
+                }
+                currentVersions.Remove(backup);
+            }
+
+            // Save the updated manifest
+            string manifestJson = JsonSerializer.Serialize(currentVersions, new JsonSerializerOptions { WriteIndented = true });
+            string manifestPath = Path.Combine(backupFolderPath, "manifest.json");
+            await System.IO.File.WriteAllTextAsync(manifestPath, manifestJson);
+        }
+
+
         private bool ShouldPerformPeriodicFullBackup()
         {
             // Calculate the number of incremental backups since the last full backup
@@ -89,11 +124,7 @@ namespace Back_It_Up.Models
         {
             string backupFolderPath = Path.Combine(DestinationPath, BackupName);
 
-            // Load the current manifest
-            //List<BackupVersion> currentVersions = await ReadManifestFileAsync();
 
-
-            // Delete the old backup ZIP files and remove them from the manifest
             foreach (var backup in BackupVersions.ToList())
             {
                 string zipPath = Path.Combine(backupFolderPath, backup.BackupZipFilePath);
@@ -104,7 +135,6 @@ namespace Back_It_Up.Models
                 BackupVersions.Remove(backup);
             }
 
-            // Save the updated manifest
             string manifestPath = Path.Combine(backupFolderPath, "manifest.json");
             System.IO.File.Delete(manifestPath);
         }
@@ -1152,7 +1182,7 @@ namespace Back_It_Up.Models
             ObservableCollection<FileSystemItem> FileSystemItems = CreateFileSystemItemsFromJson(metadata);
             BackupItems = FileSystemItems;
             BackupSetting = new BackupSetting();
-            BackupSetting = Version.BackupSetting;
+            BackupSetting = BackupVersions[0].BackupSetting;
         }
 
         private FileSystemItem FindItemByPath(ObservableCollection<FileSystemItem> items, string path)

@@ -35,7 +35,7 @@
                 <ComboBoxItem Content="Years" />
                 <!-- Add more frequency options as needed -->
             </ComboBox>
-            <Button Content="Schedule Backup" Command="{Binding ScheduleBackupCommand}" />
+            <Button Content="Schedule Backup" Command="{Binding ViewModel.CreateScheduledTaskCommand}" />
         </StackPanel>
     </Grid>
 </UserControl>

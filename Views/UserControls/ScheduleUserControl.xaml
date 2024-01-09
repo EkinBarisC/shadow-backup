@@ -4,15 +4,35 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Back_It_Up.Views.UserControls"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              mc:Ignorable="d" 
+               d:DataContext="{d:DesignInstance local:ScheduleUserControl,
+                                   IsDesignTimeCreatable=False}"
+                ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+   ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
              d:DesignHeight="450" d:DesignWidth="800">
     <Grid>
         <StackPanel>
             <DatePicker x:Name="StartDatePicker" />
-            <TimePicker x:Name="StartTimePicker" />
-            <ComboBox x:Name="FrequencyComboBox" SelectedItem="{Binding Frequency}">
-                <ComboBoxItem Content="Daily" />
-                <ComboBoxItem Content="Weekly" />
+            <!--<TimePicker x:Name="StartTimePicker" />-->
+            <StackPanel Orientation="Horizontal">
+                <ComboBox x:Name="HourComboBox" Width="50"
+              ItemsSource="{Binding ViewModel.Hours}"
+                          SelectedIndex="{Binding ViewModel.SelectedHour, Mode=TwoWay}" />
+                <TextBlock Text=":" VerticalAlignment="Center" />
+                <ComboBox x:Name="MinuteComboBox" Width="50"
+              ItemsSource="{Binding ViewModel.Minutes}" SelectedItem="{Binding ViewModel.SelectedMinute, Mode=TwoWay}" />
+            </StackPanel>
+
+            <TextBlock Text="Repeat Every" />
+            <ui:NumberBox Value="{Binding ViewModel.Frequency}" />
+            <ComboBox x:Name="FrequencyComboBox" SelectedItem="{Binding ViewModel.FrequencyType}">
+                <ComboBoxItem Content="Minutes" />
+                <ComboBoxItem Content="Hours" />
+                <ComboBoxItem Content="Days" />
+                <ComboBoxItem Content="Weeks" />
+                <ComboBoxItem Content="Years" />
                 <!-- Add more frequency options as needed -->
             </ComboBox>
             <Button Content="Schedule Backup" Command="{Binding ScheduleBackupCommand}" />

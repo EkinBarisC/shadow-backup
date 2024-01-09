@@ -45,6 +45,27 @@ namespace Back_It_Up.Models
             await PerformBackup();
         }
 
+        public void CreateBackupTask(string taskName, string executablePath, string arguments, DateTime startTime, TimeSpan repeatInterval)
+        {
+            using (TaskService ts = new TaskService())
+            {
+                TaskDefinition td = ts.NewTask();
+                td.RegistrationInfo.Description = "Perform scheduled backup";
+
+                // Create a trigger that will execute very day at a specified time
+                DailyTrigger dt = new DailyTrigger { DaysInterval = 1 };
+                dt.StartBoundary = startTime;
+                td.Triggers.Add(dt);
+
+                // Create an action that will launch the application
+                td.Actions.Add(new ExecAction(executablePath, arguments, null));
+
+                // Register the task in the root folder of the Task Scheduler
+                ts.RootFolder.RegisterTaskDefinition(taskName, td);
+            }
+        }
+
+
         public async Task PerformBackup()
         {
             LoadBackup();
@@ -89,25 +110,6 @@ namespace Back_It_Up.Models
         }
 
 
-        public void CreateBackupTask(string taskName, string executablePath, string arguments, DateTime startTime, TimeSpan repeatInterval)
-        {
-            using (TaskService ts = new TaskService())
-            {
-                TaskDefinition td = ts.NewTask();
-                td.RegistrationInfo.Description = "Perform scheduled backup";
-
-                // Create a trigger that will execute very day at a specified time
-                DailyTrigger dt = new DailyTrigger { DaysInterval = 1 };
-                dt.StartBoundary = startTime;
-                td.Triggers.Add(dt);
-
-                // Create an action that will launch the application
-                td.Actions.Add(new ExecAction(executablePath, arguments, null));
-
-                // Register the task in the root folder of the Task Scheduler
-                ts.RootFolder.RegisterTaskDefinition(taskName, td);
-            }
-        }
 
 
         private async Task DeleteBackupsOlderThan(int days)

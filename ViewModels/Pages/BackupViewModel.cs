@@ -66,7 +66,7 @@ namespace Back_It_Up.ViewModels.Pages
                     CurrentView = new OptionsUserControl(new OptionsViewModel());
                     break;
                 case "Schedule":
-                    CurrentView = new ScheduleUserControl();
+                    CurrentView = new ScheduleUserControl(new ScheduleViewModel());
                     break;
                 case "Encrypt":
                     CurrentView = new EncryptUserControl(new EncryptViewModel());

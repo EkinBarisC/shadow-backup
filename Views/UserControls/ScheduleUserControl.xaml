@@ -14,8 +14,7 @@
              d:DesignHeight="450" d:DesignWidth="800">
     <Grid>
         <StackPanel>
-            <DatePicker x:Name="StartDatePicker" />
-            <!--<TimePicker x:Name="StartTimePicker" />-->
+            <DatePicker x:Name="StartDatePicker" SelectedDate="{Binding ViewModel.SelectedDate}" />
             <StackPanel Orientation="Horizontal">
                 <ComboBox x:Name="HourComboBox" Width="50"
               ItemsSource="{Binding ViewModel.Hours}"
@@ -26,15 +25,8 @@
             </StackPanel>
 
             <TextBlock Text="Repeat Every" />
-            <ui:NumberBox Value="{Binding ViewModel.Frequency}" />
-            <ComboBox x:Name="FrequencyComboBox" SelectedItem="{Binding ViewModel.FrequencyType}">
-                <ComboBoxItem Content="Minutes" />
-                <ComboBoxItem Content="Hours" />
-                <ComboBoxItem Content="Days" />
-                <ComboBoxItem Content="Weeks" />
-                <ComboBoxItem Content="Years" />
-                <!-- Add more frequency options as needed -->
-            </ComboBox>
+            <ui:NumberBox Value="{Binding ViewModel.Frequency, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            <ComboBox x:Name="FrequencyComboBox" SelectedItem="{Binding ViewModel.FrequencyType}" ItemsSource="{Binding ViewModel.FrequencyTypeItems}" />
             <Button Content="Schedule Backup" Command="{Binding ViewModel.CreateScheduledTaskCommand}" />
         </StackPanel>
     </Grid>

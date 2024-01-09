@@ -14,7 +14,10 @@ namespace Back_It_Up.ViewModels.UserControls
     public partial class ScheduleViewModel : ObservableObject
     {
         [ObservableProperty]
-        private DateTime startDate;
+        private List<string> frequencyTypeItems = new List<string> { "Minutes", "Days", "Weeks", "Months", "Years" };
+
+        [ObservableProperty]
+        private DateTime selectedDate = DateTime.Now;
 
         [ObservableProperty]
         private DateTime startTime;
@@ -23,32 +26,28 @@ namespace Back_It_Up.ViewModels.UserControls
         private int frequency;
 
         [ObservableProperty]
-        private string frequencyType;
+        private string frequencyType = "Weeks";
 
         [ObservableProperty]
-        private int _selectedHour;
+        private int selectedHour;
 
         [ObservableProperty]
-        private int _selectedMinute;
+        private int selectedMinute;
 
         [ObservableProperty]
-        private ObservableCollection<int> _hours = new ObservableCollection<int>(Enumerable.Range(0, 24));
+        private ObservableCollection<int> hours = new ObservableCollection<int>(Enumerable.Range(0, 24));
 
         [ObservableProperty]
-        private ObservableCollection<int> _minutes = new ObservableCollection<int>(Enumerable.Range(0, 60));
+        private ObservableCollection<int> minutes = new ObservableCollection<int>(Enumerable.Range(0, 60));
 
         [RelayCommand]
         private void CreateScheduledTask()
         {
             BackupStore store = App.GetService<BackupStore>();
 
-            //string executablePath = Assembly.GetExecutingAssembly().Location;
-            //string executablePath = Assembly.GetEntryAssembly()?.Location;
-            string executablePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
-            string arguments = $"-s \"{store.SelectedBackup.BackupName}\"";
-            DateTime startTime = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, SelectedHour, SelectedMinute, 0);
+            DateTime startTime = new DateTime(SelectedDate.Year, SelectedDate.Month, SelectedDate.Day, SelectedHour, SelectedMinute, 0);
 
-            store.SelectedBackup.CreateBackupTask($"Backup_{store.SelectedBackup.BackupName}", executablePath, arguments, startTime, TimeSpan.FromMinutes(1));
+            store.SelectedBackup.CreateBackupTask($"Backup_{store.SelectedBackup.BackupName}", startTime, Frequency, FrequencyType.ToString());
         }
 
     }

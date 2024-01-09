@@ -24,6 +24,7 @@ using File = Alphaleonis.Win32.Filesystem.File;
 using Path = Alphaleonis.Win32.Filesystem.Path;
 using Task = System.Threading.Tasks.Task;
 using Microsoft.Win32.TaskScheduler;
+using Trigger = Microsoft.Win32.TaskScheduler.Trigger;
 
 namespace Back_It_Up.Models
 {
@@ -45,18 +46,48 @@ namespace Back_It_Up.Models
             await PerformBackup();
         }
 
-        public void CreateBackupTask(string taskName, string executablePath, string arguments, DateTime startTime, TimeSpan repeatInterval)
+        public void CreateBackupTask(string taskName, DateTime startTime, int frequency, string frequencyType)
         {
             using (TaskService ts = new TaskService())
             {
+                string executablePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
+                string arguments = $"-s \"{BackupName}\"";
+
                 TaskDefinition td = ts.NewTask();
                 td.RegistrationInfo.Description = "Perform scheduled backup";
                 td.Principal.RunLevel = TaskRunLevel.Highest;  // Run with the highest privileges
 
-                // Create a trigger that will execute very day at a specified time
-                DailyTrigger dt = new DailyTrigger { DaysInterval = 1 };
-                dt.StartBoundary = startTime;
-                td.Triggers.Add(dt);
+                Trigger trigger;
+
+                switch (frequencyType)
+                {
+                    case "Minutes":
+                    case "Hours":
+                        // Use DailyTrigger with a repetition pattern
+                        var dailyTrigger = new DailyTrigger { DaysInterval = 1 };
+                        dailyTrigger.StartBoundary = startTime;
+                        TimeSpan repeatInterval = frequencyType == "Minutes" ?
+                                                  TimeSpan.FromMinutes(frequency) :
+                                                  TimeSpan.FromHours(frequency);
+                        dailyTrigger.Repetition.Interval = repeatInterval;
+                        trigger = dailyTrigger;
+                        break;
+                    case "Days":
+                        trigger = new DailyTrigger { DaysInterval = (short)frequency, StartBoundary = startTime };
+                        break;
+                    case "Weeks":
+                        trigger = new WeeklyTrigger { WeeksInterval = (short)frequency, StartBoundary = startTime };
+                        break;
+                    case "Years":
+                        // For yearly, consider using a MonthlyTrigger and adjust accordingly
+                        trigger = new MonthlyTrigger(); // Adjust for yearly scheduling
+                        trigger.StartBoundary = startTime;
+                        break;
+                    default:
+                        throw new ArgumentException("Invalid frequency type.");
+                }
+
+                td.Triggers.Add(trigger);
 
                 // Create an action that will launch the application
                 td.Actions.Add(new ExecAction(executablePath, arguments, null));
@@ -65,6 +96,7 @@ namespace Back_It_Up.Models
                 ts.RootFolder.RegisterTaskDefinition(taskName, td);
             }
         }
+
 
 
         public async Task PerformBackup()

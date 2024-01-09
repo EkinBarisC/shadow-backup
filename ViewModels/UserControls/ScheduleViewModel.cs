@@ -42,7 +42,9 @@ namespace Back_It_Up.ViewModels.UserControls
         {
             BackupStore store = App.GetService<BackupStore>();
 
-            string executablePath = Assembly.GetExecutingAssembly().Location;
+            //string executablePath = Assembly.GetExecutingAssembly().Location;
+            //string executablePath = Assembly.GetEntryAssembly()?.Location;
+            string executablePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
             string arguments = $"-s \"{store.SelectedBackup.BackupName}\"";
             DateTime startTime = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, SelectedHour, SelectedMinute, 0);
 

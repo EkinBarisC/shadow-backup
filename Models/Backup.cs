@@ -51,6 +51,7 @@ namespace Back_It_Up.Models
             {
                 TaskDefinition td = ts.NewTask();
                 td.RegistrationInfo.Description = "Perform scheduled backup";
+                td.Principal.RunLevel = TaskRunLevel.Highest;  // Run with the highest privileges
 
                 // Create a trigger that will execute very day at a specified time
                 DailyTrigger dt = new DailyTrigger { DaysInterval = 1 };

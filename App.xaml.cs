@@ -77,22 +77,21 @@ namespace Back_It_Up
         /// </summary>
         private async void OnStartup(object sender, StartupEventArgs e)
         {
-            //if (e.Args.Length > 0 && e.Args[0] == "-s")
-            //{
-            // Assume the second argument is the backup name
+            if (e.Args.Length > 0 && e.Args[0] == "-s")
+            {
+                // Assume the second argument is the backup name
 
-            // Perform backup logic
-            string backupName = "planlı backup"; // e.Args.Length > 1 ? e.Args[1] : string.Empty;
-            BackupStore store = GetService<BackupStore>();
-            await store.SelectedBackup.PerformScheduledBackup(backupName);
+                // Perform backup logic
+                string backupName = e.Args.Length > 1 ? e.Args[1] : string.Empty;
+                BackupStore store = GetService<BackupStore>();
+                await store.SelectedBackup.PerformScheduledBackup(backupName);
 
-            // Shutdown the application after the backup is complete
-            Current.Shutdown();
-            await _host.StopAsync();
-
-            _host.Dispose();
-            return;
-            //}
+                // Shutdown the application after the backup is complete
+                await _host.StopAsync();
+                _host.Dispose();
+                Current.Shutdown();
+                return;
+            }
 
             // Normal startup
             _host.Start();

@@ -75,6 +75,18 @@ namespace Back_It_Up.ViewModels.Pages
 
         }
 
+        [RelayCommand]
+        private void SelectAll()
+        {
+            BackupStore store = App.GetService<BackupStore>();
+
+            foreach (var item in FileSystemItems)
+            {
+                item.SetIsSelectedRecursively(true);
+                AddItemWithChildrenToRestoreItems(item, store.SelectedBackup.RestoreItems);
+            }
+        }
+
         private void CheckBoxChecked(FileSystemItem dataItem)
         {
             BackupStore store = App.GetService<BackupStore>();

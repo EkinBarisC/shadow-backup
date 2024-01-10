@@ -49,20 +49,28 @@ public partial class LogsViewModel : ObservableObject
 
     private LogEntry ParseLogLine(string line)
     {
-        // Implement logic to parse a line from the log file
-        // For example, split the line by a delimiter and extract timestamp and message
-        // Return null if the line doesn't match the expected format
+        // Split the line by spaces but limit the number of parts to 6 
+        // (date, time, timezone, log level, and message)
+        var parts = line.Split(new[] { ' ' }, 6);
 
-        // Example implementation (adjust according to your log format):
-        var parts = line.Split(new[] { ' ' }, 3);
-        if (parts.Length >= 3 && DateTime.TryParse(parts[0], out var timestamp))
+        if (parts.Length >= 6)
         {
-            return new LogEntry
+            var dateTimePart = $"{parts[0]} {parts[1]} {parts[2]}";
+            if (DateTimeOffset.TryParse(dateTimePart, out var timestamp))
             {
-                Timestamp = timestamp,
-                Message = parts[2]
-            };
+                var logLevel = parts[3].Trim('[', ']');
+                var message = parts[5];
+
+                return new LogEntry
+                {
+                    Timestamp = timestamp.UtcDateTime,
+                    LogLevel = logLevel,
+                    Message = message
+                };
+            }
         }
+
         return null;
     }
+
 }

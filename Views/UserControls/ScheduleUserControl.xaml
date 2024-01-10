@@ -4,9 +4,30 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Back_It_Up.Views.UserControls"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              mc:Ignorable="d" 
+               d:DataContext="{d:DesignInstance local:ScheduleUserControl,
+                                   IsDesignTimeCreatable=False}"
+                ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+   ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
              d:DesignHeight="450" d:DesignWidth="800">
     <Grid>
-        <DatePicker />
+        <StackPanel>
+            <DatePicker x:Name="StartDatePicker" SelectedDate="{Binding ViewModel.SelectedDate}" />
+            <StackPanel Orientation="Horizontal">
+                <ComboBox x:Name="HourComboBox" Width="50"
+              ItemsSource="{Binding ViewModel.Hours}"
+                          SelectedIndex="{Binding ViewModel.SelectedHour, Mode=TwoWay}" />
+                <TextBlock Text=":" VerticalAlignment="Center" />
+                <ComboBox x:Name="MinuteComboBox" Width="50"
+              ItemsSource="{Binding ViewModel.Minutes}" SelectedItem="{Binding ViewModel.SelectedMinute, Mode=TwoWay}" />
+            </StackPanel>
+
+            <TextBlock Text="Repeat Every" />
+            <ui:NumberBox Value="{Binding ViewModel.Frequency, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            <ComboBox x:Name="FrequencyComboBox" SelectedItem="{Binding ViewModel.FrequencyType}" ItemsSource="{Binding ViewModel.FrequencyTypeItems}" />
+            <Button Content="Schedule Backup" Command="{Binding ViewModel.CreateScheduledTaskCommand}" />
+        </StackPanel>
     </Grid>
 </UserControl>

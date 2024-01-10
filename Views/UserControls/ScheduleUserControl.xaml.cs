@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Back_It_Up.ViewModels.UserControls;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -20,8 +21,11 @@ namespace Back_It_Up.Views.UserControls
     /// </summary>
     public partial class ScheduleUserControl : UserControl
     {
-        public ScheduleUserControl()
+        public ScheduleViewModel ViewModel { get; }
+        public ScheduleUserControl(ScheduleViewModel viewModel)
         {
+            ViewModel = viewModel;
+            DataContext = this;
             InitializeComponent();
         }
     }

@@ -34,7 +34,6 @@
 
             <StackPanel>
                 <RadioButton Content="No Scheme" GroupName="scheme"   IsChecked="{Binding ViewModel.BackupSetting.SelectedBackupScheme, Converter={StaticResource EnumBooleanConverter}, ConverterParameter=NoScheme}"/>
-                <RadioButton Content="Incremental Backup Only" GroupName="scheme"  IsChecked="{Binding ViewModel.BackupSetting.SelectedBackupScheme, Converter={StaticResource EnumBooleanConverter}, ConverterParameter=IncrementalBackupOnly}"/>
                 <RadioButton Content="Continuous Data Protection" GroupName="scheme"  IsChecked="{Binding ViewModel.BackupSetting.SelectedBackupScheme, Converter={StaticResource EnumBooleanConverter}, ConverterParameter=ContinuousDataProtection}"/>
                 <RadioButton Content="Create a Full Backup After Every" GroupName="scheme"  IsChecked="{Binding ViewModel.BackupSetting.SelectedBackupScheme, Converter={StaticResource EnumBooleanConverter}, ConverterParameter=PeriodicFullBackup}">
                     <RadioButton.ContentTemplate>

@@ -22,6 +22,9 @@ using System.Windows.Media.Animation;
 using Directory = Alphaleonis.Win32.Filesystem.Directory;
 using File = Alphaleonis.Win32.Filesystem.File;
 using Path = Alphaleonis.Win32.Filesystem.Path;
+using Task = System.Threading.Tasks.Task;
+using Microsoft.Win32.TaskScheduler;
+using Trigger = Microsoft.Win32.TaskScheduler.Trigger;
 
 namespace Back_It_Up.Models
 {
@@ -36,6 +39,66 @@ namespace Back_It_Up.Models
         public List<BackupVersion> BackupVersions;
         public BackupVersion Version;
 
+        public async Task PerformScheduledBackup(string backupName)
+        {
+            BackupName = backupName;
+            LoadBackup();
+            await PerformBackup();
+        }
+
+        public void CreateBackupTask(string taskName, DateTime startTime, int frequency, string frequencyType)
+        {
+            using (TaskService ts = new TaskService())
+            {
+                string executablePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
+                string arguments = $"-s \"{BackupName}\"";
+
+                TaskDefinition td = ts.NewTask();
+                td.RegistrationInfo.Description = "Perform scheduled backup";
+                td.Principal.RunLevel = TaskRunLevel.Highest;  // Run with the highest privileges
+
+                Trigger trigger;
+
+                switch (frequencyType)
+                {
+                    case "Minutes":
+                    case "Hours":
+                        // Use DailyTrigger with a repetition pattern
+                        var dailyTrigger = new DailyTrigger { DaysInterval = 1 };
+                        dailyTrigger.StartBoundary = startTime;
+                        TimeSpan repeatInterval = frequencyType == "Minutes" ?
+                                                  TimeSpan.FromMinutes(frequency) :
+                                                  TimeSpan.FromHours(frequency);
+                        dailyTrigger.Repetition.Interval = repeatInterval;
+                        trigger = dailyTrigger;
+                        break;
+                    case "Days":
+                        trigger = new DailyTrigger { DaysInterval = (short)frequency, StartBoundary = startTime };
+                        break;
+                    case "Weeks":
+                        trigger = new WeeklyTrigger { WeeksInterval = (short)frequency, StartBoundary = startTime };
+                        break;
+                    case "Years":
+                        // For yearly, consider using a MonthlyTrigger and adjust accordingly
+                        trigger = new MonthlyTrigger(); // Adjust for yearly scheduling
+                        trigger.StartBoundary = startTime;
+                        break;
+                    default:
+                        throw new ArgumentException("Invalid frequency type.");
+                }
+
+                td.Triggers.Add(trigger);
+
+                // Create an action that will launch the application
+                td.Actions.Add(new ExecAction(executablePath, arguments, null));
+
+                // Register the task in the root folder of the Task Scheduler
+                ts.RootFolder.RegisterTaskDefinition(taskName, td);
+            }
+        }
+
+
+
         public async Task PerformBackup()
         {
             LoadBackup();
@@ -43,15 +106,30 @@ namespace Back_It_Up.Models
             switch (BackupSetting.SelectedBackupMethod)
             {
                 case BackupMethod.Full:
+                    if (BackupSetting.SelectedCleaningOption == CleaningOption.CleanUpOldBackups && BackupSetting.DaysToKeepBackups.HasValue)
+                    {
+                        await DeleteBackupsOlderThan(BackupSetting.DaysToKeepBackups.Value);
+                    }
                     await PerformFullBackup();
                     break;
 
                 case BackupMethod.Incremental:
-
                     if (DoesPreviousBackupExist())
                     {
-                        await RestoreIncrementalBackup("backup", Version);
-                        await PerformIncrementalBackup();
+                        // Check if it's time for a periodic full backup
+                        if (BackupSetting.SelectedBackupScheme == BackupScheme.PeriodicFullBackup &&
+                            ShouldPerformPeriodicFullBackup())
+                        {
+                            // Perform a full backup
+                            await CleanUpOldBackups();
+                            await PerformFullBackup();
+                        }
+                        else
+                        {
+                            // Perform an incremental backup
+                            await RestoreIncrementalBackup("backup", Version);
+                            await PerformIncrementalBackup();
+                        }
                     }
                     else
                     {
@@ -62,6 +140,69 @@ namespace Back_It_Up.Models
                 default:
                     throw new InvalidOperationException("Unknown backup method.");
             }
+        }
+
+
+
+
+        private async Task DeleteBackupsOlderThan(int days)
+        {
+            string backupFolderPath = Path.Combine(DestinationPath, BackupName);
+
+            // Load the current manifest
+            List<BackupVersion> currentVersions = await ReadManifestFileAsync();
+
+            // Calculate the threshold date
+            DateTime thresholdDate = DateTime.Now.AddDays(-days);
+
+            // Identify backups older than the threshold
+            var oldBackups = currentVersions.Where(version => version.DateCreated < thresholdDate);
+
+            // Delete the old backup ZIP files and remove them from the manifest
+            foreach (var backup in oldBackups.ToList())
+            {
+                string zipPath = Path.Combine(backupFolderPath, backup.BackupZipFilePath);
+                if (File.Exists(zipPath))
+                {
+                    File.Delete(zipPath);
+                }
+                currentVersions.Remove(backup);
+            }
+
+            // Save the updated manifest
+            string manifestJson = JsonSerializer.Serialize(currentVersions, new JsonSerializerOptions { WriteIndented = true });
+            string manifestPath = Path.Combine(backupFolderPath, "manifest.json");
+            await System.IO.File.WriteAllTextAsync(manifestPath, manifestJson);
+        }
+
+
+        private bool ShouldPerformPeriodicFullBackup()
+        {
+            // Calculate the number of incremental backups since the last full backup
+            int incrementalCount = BackupVersions.Count();
+
+            // Check if the number of incremental backups has reached the frequency limit
+            return BackupSetting.FullBackupFrequency.HasValue &&
+                   incrementalCount >= BackupSetting.FullBackupFrequency.Value;
+        }
+
+        private async Task CleanUpOldBackups()
+        {
+            string backupFolderPath = Path.Combine(DestinationPath, BackupName);
+
+
+            foreach (var backup in BackupVersions.ToList())
+            {
+                string zipPath = Path.Combine(backupFolderPath, backup.BackupZipFilePath);
+                if (File.Exists(zipPath))
+                {
+                    File.Delete(zipPath);
+                }
+                BackupVersions.Remove(backup);
+            }
+
+            string manifestPath = Path.Combine(backupFolderPath, "manifest.json");
+            System.IO.File.Delete(manifestPath);
         }
 
 
@@ -530,9 +671,10 @@ namespace Back_It_Up.Models
 
         public async Task PerformFullBackup()
         {
-            int version = await CreateManifest(BackupSetting.SelectedBackupMethod);
+            int version = await CreateManifest();
             await CreateMetadata();
             await FullBackup();
+
             await CreateZipArchive(version);
             await WriteBackupLocation();
         }
@@ -596,7 +738,7 @@ namespace Back_It_Up.Models
             using (var md5 = MD5.Create())
             {
                 // Open the file asynchronously with AlphaFS
-                using (var stream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous))
+                using (var stream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 128 * 1024, FileOptions.Asynchronous))
                 {
                     // Read and compute the hash asynchronously
                     var hash = await md5.ComputeHashAsync(stream);
@@ -689,7 +831,7 @@ namespace Back_It_Up.Models
         }
 
 
-        public async Task<int> CreateManifest(BackupMethod method)
+        public async Task<int> CreateManifest()
         {
             string destinationFolder = Path.Combine(DestinationPath, BackupName);
             if (!Directory.Exists(destinationFolder))
@@ -716,7 +858,7 @@ namespace Back_It_Up.Models
                 Version = newVersionNumber,
                 DateCreated = DateTime.Now,
                 BackupZipFilePath = Path.Combine(destinationFolder, $"v{newVersionNumber}.zip"),
-                BackupMethod = method
+                BackupSetting = BackupSetting
             };
 
             backupVersions.Add(newVersion);
@@ -884,8 +1026,8 @@ namespace Back_It_Up.Models
 
         private async Task CopyFileAsync(string sourcePath, string destinationPath)
         {
-            using (var sourceStream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 4096, useAsync: true))
-            using (var destStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 4096, useAsync: true))
+            using (var sourceStream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 128 * 1024, useAsync: true))
+            using (var destStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 128 * 1024, useAsync: true))
             {
                 await sourceStream.CopyToAsync(destStream);
             }
@@ -1106,7 +1248,7 @@ namespace Back_It_Up.Models
             ObservableCollection<FileSystemItem> FileSystemItems = CreateFileSystemItemsFromJson(metadata);
             BackupItems = FileSystemItems;
             BackupSetting = new BackupSetting();
-            BackupSetting.SelectedBackupMethod = Version.BackupMethod;
+            BackupSetting = BackupVersions[0].BackupSetting;
         }
 
         private FileSystemItem FindItemByPath(ObservableCollection<FileSystemItem> items, string path)

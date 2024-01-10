@@ -32,7 +32,6 @@ namespace Back_It_Up.Models
     public enum BackupScheme
     {
         NoScheme,
-        IncrementalBackupOnly,
         ContinuousDataProtection,
         PeriodicFullBackup
     }

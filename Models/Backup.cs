@@ -25,6 +25,7 @@ using Path = Alphaleonis.Win32.Filesystem.Path;
 using Task = System.Threading.Tasks.Task;
 using Microsoft.Win32.TaskScheduler;
 using Trigger = Microsoft.Win32.TaskScheduler.Trigger;
+using Serilog;
 
 namespace Back_It_Up.Models
 {
@@ -101,45 +102,56 @@ namespace Back_It_Up.Models
 
         public async Task PerformBackup()
         {
-            LoadBackup();
+            Log.Information("PerformBackup started for \"{BackupName}\"", BackupName);
 
-            switch (BackupSetting.SelectedBackupMethod)
+            try
             {
-                case BackupMethod.Full:
-                    if (BackupSetting.SelectedCleaningOption == CleaningOption.CleanUpOldBackups && BackupSetting.DaysToKeepBackups.HasValue)
-                    {
-                        await DeleteBackupsOlderThan(BackupSetting.DaysToKeepBackups.Value);
-                    }
-                    await PerformFullBackup();
-                    break;
-
-                case BackupMethod.Incremental:
-                    if (DoesPreviousBackupExist())
-                    {
-                        // Check if it's time for a periodic full backup
-                        if (BackupSetting.SelectedBackupScheme == BackupScheme.PeriodicFullBackup &&
-                            ShouldPerformPeriodicFullBackup())
+                LoadBackup();
+                switch (BackupSetting.SelectedBackupMethod)
+                {
+                    case BackupMethod.Full:
+                        if (BackupSetting.SelectedCleaningOption == CleaningOption.CleanUpOldBackups && BackupSetting.DaysToKeepBackups.HasValue)
                         {
-                            // Perform a full backup
-                            await CleanUpOldBackups();
-                            await PerformFullBackup();
+                            await DeleteBackupsOlderThan(BackupSetting.DaysToKeepBackups.Value);
+                        }
+                        await PerformFullBackup();
+                        break;
+
+                    case BackupMethod.Incremental:
+                        if (DoesPreviousBackupExist())
+                        {
+                            // Check if it's time for a periodic full backup
+                            if (BackupSetting.SelectedBackupScheme == BackupScheme.PeriodicFullBackup &&
+                                ShouldPerformPeriodicFullBackup())
+                            {
+                                // Perform a full backup
+                                await CleanUpOldBackups();
+                                await PerformFullBackup();
+                            }
+                            else
+                            {
+                                // Perform an incremental backup
+                                await RestoreIncrementalBackup("backup", Version);
+                                await PerformIncrementalBackup();
+                            }
                         }
                         else
                         {
-                            // Perform an incremental backup
-                            await RestoreIncrementalBackup("backup", Version);
-                            await PerformIncrementalBackup();
+                            await PerformFullBackup();
                         }
-                    }
-                    else
-                    {
-                        await PerformFullBackup();
-                    }
-                    break;
+                        break;
 
-                default:
-                    throw new InvalidOperationException("Unknown backup method.");
+                    default:
+                        Log.Warning("Unknown backup method: {BackupMethod}", BackupSetting.SelectedBackupMethod);
+                        throw new InvalidOperationException("Unknown backup method.");
+                }
             }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "An error occurred during PerformBackup: {ErrorMessage}", ex.Message);
+                throw;
+            }
+            Log.Information("Completed Backup of \"{BackupName}\"", BackupName);
         }
 
 

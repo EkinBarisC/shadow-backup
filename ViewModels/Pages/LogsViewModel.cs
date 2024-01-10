@@ -5,6 +5,7 @@ using Back_It_Up.ViewModels.Pages;
 using Back_It_Up.Views.Pages;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Collections.ObjectModel;
+using System.IO;
 
 public partial class LogsViewModel : ObservableObject
 {
@@ -19,14 +20,24 @@ public partial class LogsViewModel : ObservableObject
         _navigationService = navigationService;
     }
 
-    private void LoadLogs()
+    private async void LoadLogs()
     {
         // Initialize the collection
         Logs = new ObservableCollection<LogEntry>();
+        string logFilePath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BackItUp", "logs.txt");
 
         // Read the log file and parse each line
-        string logFilePath = "C:\\Users\\User\\Documents\\backup_log202401.txt"; // Adjust the path as necessary
-        var logLines = System.IO.File.ReadAllLines(logFilePath);
+        var logLines = new List<string>();
+        using (var fileStream = new FileStream(logFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+        using (var reader = new StreamReader(fileStream))
+        {
+            while (!reader.EndOfStream)
+            {
+                var line = await reader.ReadLineAsync();
+                logLines.Add(line);
+            }
+        }
+
         foreach (var line in logLines)
         {
             var logEntry = ParseLogLine(line);
@@ -49,17 +60,17 @@ public partial class LogsViewModel : ObservableObject
 
     private LogEntry ParseLogLine(string line)
     {
-        // Split the line by spaces but limit the number of parts to 6 
-        // (date, time, timezone, log level, and message)
-        var parts = line.Split(new[] { ' ' }, 6);
+        // Split the line by spaces, but limit the number of parts to handle fixed format parts
+        var parts = line.Split(new[] { ' ' }, 5);
 
-        if (parts.Length >= 6)
+        if (parts.Length >= 5)
         {
             var dateTimePart = $"{parts[0]} {parts[1]} {parts[2]}";
             if (DateTimeOffset.TryParse(dateTimePart, out var timestamp))
             {
                 var logLevel = parts[3].Trim('[', ']');
-                var message = parts[5];
+                // The message is everything after the 4th space
+                var message = parts[4];
 
                 return new LogEntry
                 {
@@ -72,5 +83,6 @@ public partial class LogsViewModel : ObservableObject
 
         return null;
     }
+
 
 }

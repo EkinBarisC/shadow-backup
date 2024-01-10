@@ -12,6 +12,7 @@ using Back_It_Up.Views.Windows;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Serilog;
 using System.IO;
 using System.Reflection;
 using System.Windows.Threading;
@@ -77,6 +78,14 @@ namespace Back_It_Up
         /// </summary>
         private async void OnStartup(object sender, StartupEventArgs e)
         {
+            string logFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BackItUp", "logs.txt");
+
+            Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Debug()
+            .WriteTo.Console()
+            .WriteTo.File(logFilePath, shared: true)
+            .CreateLogger();
+
             if (e.Args.Length > 0 && e.Args[0] == "-s")
             {
                 // Assume the second argument is the backup name
@@ -104,8 +113,8 @@ namespace Back_It_Up
         /// </summary>
         private async void OnExit(object sender, ExitEventArgs e)
         {
+            Log.CloseAndFlush();
             await _host.StopAsync();
-
             _host.Dispose();
         }
 

@@ -42,12 +42,31 @@ namespace Back_It_Up.Views.Windows
 
             Messenger.Default.Register<string>(this, BackupStatus.Complete, OnBackupCreated);
             Messenger.Default.Register<string>(this, BackupStatus.RestoreComplete, OnRestoreCreated);
+            Messenger.Default.Register<string>(this, BackupStatus.Deleted, OnBackupDeleted);
 
+        }
+
+        private void OnBackupDeleted(string backupName)
+        {
+            ShowSnackbarMessage("Backup Deleted");
+            UpdateBackupList();
+            while (NavigationView.CanGoBack)
+                NavigationView.GoBack();
         }
 
         private void OnBackupCreated(string backupName)
         {
             ShowSnackbarMessage("Backup Completed");
+            UpdateBackupList();
+
+        }
+        private void OnRestoreCreated(string backupName)
+        {
+            ShowSnackbarMessage("Restore Completed");
+        }
+
+        private void UpdateBackupList()
+        {
             ViewModel.LoadBackupLocations();
 
             for (int i = 0; i < ViewModel.MenuItems.Count; i++)
@@ -57,13 +76,7 @@ namespace Back_It_Up.Views.Windows
                     navigationViewItem.Template = NavigationView.ItemTemplate;
                 }
             }
-
         }
-        private void OnRestoreCreated(string backupName)
-        {
-            ShowSnackbarMessage("Restore Completed");
-        }
-
         public void ShowSnackbarMessage(string message)
         {
             snackbarService.Show(

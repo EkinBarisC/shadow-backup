@@ -86,7 +86,7 @@ namespace Back_It_Up.ViewModels.Pages
             await store.SelectedBackup.DeleteBackup();
             //send message backup complete
             store.SelectedBackup = new Backup();
-            Messenger.Default.Send<string>("Backup Complete", BackupStatus.Complete);
+            Messenger.Default.Send<string>("Backup Complete", BackupStatus.Deleted);
 
         }
 

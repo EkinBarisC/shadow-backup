@@ -48,6 +48,16 @@ namespace Back_It_Up.Views.Windows
         private void OnBackupCreated(string backupName)
         {
             ShowSnackbarMessage("Backup Completed");
+            ViewModel.LoadBackupLocations();
+
+            for (int i = 0; i < ViewModel.MenuItems.Count; i++)
+            {
+                if (ViewModel.MenuItems[i] is NavigationViewItem navigationViewItem && NavigationView.ItemTemplate != null && navigationViewItem.Template != NavigationView.ItemTemplate)
+                {
+                    navigationViewItem.Template = NavigationView.ItemTemplate;
+                }
+            }
+
         }
         private void OnRestoreCreated(string backupName)
         {

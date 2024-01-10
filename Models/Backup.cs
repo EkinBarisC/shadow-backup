@@ -40,6 +40,43 @@ namespace Back_It_Up.Models
         public List<BackupVersion> BackupVersions;
         public BackupVersion Version;
 
+        public async Task DeleteBackup()
+        {
+            // 1. Delete backup contents from the destination path
+            try
+            {
+                string backupFolderPath = Path.Combine(DestinationPath, BackupName);
+                if (Directory.Exists(backupFolderPath))
+                {
+                    Directory.Delete(backupFolderPath, recursive: true);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Handle exceptions (e.g., log them or inform the user)
+            }
+
+            // 2. Remove the backup entry from backup_locations.txt
+            try
+            {
+                string appDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BackItUp");
+                string backupLocationsFilePath = Path.Combine(appDataFolder, "backup_locations.txt");
+
+                if (File.Exists(backupLocationsFilePath))
+                {
+                    var allLines = await System.IO.File.ReadAllLinesAsync(backupLocationsFilePath);
+                    var updatedLines = allLines.Where(line => !line.Trim().Equals(Path.Combine(DestinationPath, BackupName), StringComparison.OrdinalIgnoreCase)).ToList();
+
+                    await System.IO.File.WriteAllLinesAsync(backupLocationsFilePath, updatedLines);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Handle exceptions
+            }
+        }
+
+
         public async Task PerformScheduledBackup(string backupName)
         {
             BackupName = backupName;

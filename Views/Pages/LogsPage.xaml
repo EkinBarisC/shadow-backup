@@ -25,7 +25,7 @@
                 </i:EventTrigger>
             </i:Interaction.Triggers>
             <ui:DataGrid.Columns>
-                <DataGridTextColumn Header="Timestamp" Binding="{Binding Timestamp}" />
+                <DataGridTextColumn Header="Timestamp" Binding="{Binding FormattedTimestamp}" />
                 <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="*" />
             </ui:DataGrid.Columns>
         </ui:DataGrid>

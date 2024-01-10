@@ -74,7 +74,7 @@ public partial class LogsViewModel : ObservableObject
 
                 return new LogEntry
                 {
-                    Timestamp = timestamp.UtcDateTime,
+                    Timestamp = timestamp,
                     LogLevel = logLevel,
                     Message = message
                 };

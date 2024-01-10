@@ -151,7 +151,7 @@ namespace Back_It_Up.Models
                 Log.Error(ex, $"An error occurred during PerformBackup: {ex.Message}");
                 throw;
             }
-            Log.Information($"Backup successfully completed for '{BackupName}'");
+            Log.Information($"Backup completed successfully for '{BackupName}'");
         }
 
 

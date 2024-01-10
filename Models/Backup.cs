@@ -102,7 +102,7 @@ namespace Back_It_Up.Models
 
         public async Task PerformBackup()
         {
-            Log.Information("PerformBackup started for \"{BackupName}\"", BackupName);
+            Log.Information($"Backup started for '{BackupName}'");
 
             try
             {
@@ -142,16 +142,16 @@ namespace Back_It_Up.Models
                         break;
 
                     default:
-                        Log.Warning("Unknown backup method: {BackupMethod}", BackupSetting.SelectedBackupMethod);
+                        Log.Warning($"Unknown backup method: {BackupSetting.SelectedBackupMethod}");
                         throw new InvalidOperationException("Unknown backup method.");
                 }
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "An error occurred during PerformBackup: {ErrorMessage}", ex.Message);
+                Log.Error(ex, $"An error occurred during PerformBackup: {ex.Message}");
                 throw;
             }
-            Log.Information("Completed Backup of \"{BackupName}\"", BackupName);
+            Log.Information($"Backup successfully completed for '{BackupName}'");
         }
 
 
@@ -249,6 +249,77 @@ namespace Back_It_Up.Models
             await CreateIncrementalBackupZipAndCleanup(changedFiles);
 
         }
+
+        public async Task RestoreBackup(string reason, BackupVersion selectedVersion)
+        {
+            try
+            {
+                Log.Information($"Started restore process for '{BackupName}'");
+
+                // Determine the restore directory based on the reason
+                string restoreDirectory = reason == "restore"
+                ? Path.Combine(RestorePath, BackupName)
+                : Path.Combine(DestinationPath, BackupName, "Contents");
+
+                if (!Directory.Exists(restoreDirectory))
+                {
+                    Directory.CreateDirectory(restoreDirectory);
+                }
+
+                // Check the backup method of the selected version
+                switch (selectedVersion.BackupSetting.SelectedBackupMethod)
+                {
+                    case BackupMethod.Full:
+                        // Handle full backup restore
+                        string zipFilePath = selectedVersion.BackupZipFilePath;
+                        if (reason == "restore")
+                            await ExtractSelectedFilesFromZip(zipFilePath, restoreDirectory, RestoreItems);
+                        else
+                            ExtractZipFileToDirectory(zipFilePath, restoreDirectory);
+                        break;
+
+                    case BackupMethod.Incremental:
+                        // Handle incremental backup restore
+                        foreach (var version in BackupVersions)
+                        {
+                            zipFilePath = version.BackupZipFilePath;
+
+                            if (version == BackupVersions.First())
+                            {
+                                if (reason == "restore")
+                                    await ExtractSelectedFilesFromZip(zipFilePath, restoreDirectory, RestoreItems);
+                                else
+                                    ExtractZipFileToDirectory(zipFilePath, restoreDirectory);
+                            }
+                            else
+                            {
+                                if (reason == "restore")
+                                    await ApplySelectedPatchesFromIncrementalBackup(zipFilePath, restoreDirectory, RestoreItems);
+                                else
+                                    await ApplyPatchesFromIncrementalBackup(zipFilePath, restoreDirectory);
+                            }
+
+                            if (version.Version == selectedVersion.Version)
+                            {
+                                break;
+                            }
+                        }
+                        break;
+
+                    default:
+                        Log.Warning($"Unknown backup method: {selectedVersion.BackupSetting.SelectedBackupMethod}");
+                        throw new InvalidOperationException("Unknown backup method.");
+                }
+                Log.Information($"Restore completed successfully for '{BackupName}'");
+
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "An error occurred during RestoreBackup: {ErrorMessage}", ex.Message);
+                throw;
+            }
+        }
+
 
         public async Task RestoreIncrementalBackup(string reason, BackupVersion selectedVersion)
         {

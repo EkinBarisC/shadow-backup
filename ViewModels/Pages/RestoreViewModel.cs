@@ -70,7 +70,7 @@ namespace Back_It_Up.ViewModels.Pages
         private async void Restore()
         {
             BackupStore store = App.GetService<BackupStore>();
-            await store.SelectedBackup.RestoreIncrementalBackup("restore", SelectedVersion);
+            await store.SelectedBackup.RestoreBackup("restore", SelectedVersion);
             Messenger.Default.Send<string>("Restore Complete", BackupStatus.RestoreComplete);
 
         }

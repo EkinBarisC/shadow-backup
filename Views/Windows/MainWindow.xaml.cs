@@ -9,6 +9,7 @@ using Back_It_Up.ViewModels.Windows;
 using GalaSoft.MvvmLight.Messaging;
 using System.Collections.ObjectModel;
 using System.Windows.Controls;
+using System.Windows.Media;
 using Wpf.Ui.Common;
 using Wpf.Ui.Controls;
 
@@ -51,16 +52,16 @@ namespace Back_It_Up.Views.Windows
 
         private void OnBackupDeleted(string backupName)
         {
-            //ShowSnackbarMessage("Backup Deleted");
             UpdateBackupList();
             while (NavigationView.CanGoBack)
                 NavigationView.GoBack();
+            ShowSnackbarMessage("Backup Deleted");
         }
 
         private void OnBackupCreated(string backupName)
         {
-            //ShowSnackbarMessage("Backup Completed");
             UpdateBackupList();
+            ShowSnackbarMessage("Backup Completed");
 
         }
         private void OnRestoreCreated(string backupName)
@@ -76,18 +77,16 @@ namespace Back_It_Up.Views.Windows
             var newNavigationView = new NavigationView
             {
                 MenuItemsSource = backupList,
-                // Copy other necessary properties from the old NavigationView to the new one
                 Header = NavigationView.Header,
                 IsPaneOpen = NavigationView.IsPaneOpen,
                 PaneDisplayMode = NavigationView.PaneDisplayMode,
-                // etc...
+                // Copy other properties as necessary
             };
 
             // Assign event handlers to the new NavigationView
             newNavigationView.SelectionChanged += NavigationView_SelectionChanged;
 
             // Replace the old NavigationView with the new one in the layout
-            // Assuming NavigationView is placed directly in the layout (like in a Grid)
             var parent = NavigationView.Parent as Panel;
             if (parent != null)
             {
@@ -101,7 +100,10 @@ namespace Back_It_Up.Views.Windows
 
             // Update the reference to the new NavigationView
             NavigationView = newNavigationView;
+
+
         }
+
 
         public void ShowSnackbarMessage(string message)
         {

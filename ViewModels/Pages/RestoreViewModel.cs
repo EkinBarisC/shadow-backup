@@ -126,14 +126,22 @@ namespace Back_It_Up.ViewModels.Pages
         }
 
         [RelayCommand]
-        public void LoadContents(BackupVersion backupVersion)
+        public void LoadContents(BackupVersion backupVersion = null)
         {
             BackupStore store = App.GetService<BackupStore>();
-            BackupVersions = store.SelectedBackup.BackupVersions;
+
+            // Reset BackupVersions if backupVersion is not provided
+            BackupVersions = backupVersion != null ? store.SelectedBackup.BackupVersions : new List<BackupVersion>();
+
             SelectedVersion = backupVersion;
-            store.SelectedBackup.LoadContents(BackupVersions[0]);
-            FileSystemItems = store.SelectedBackup.BackupItems;
+
+            // Reset FileSystemItems if backupVersion is not provided
+            FileSystemItems = backupVersion != null ? store.SelectedBackup.BackupItems : new ObservableCollection<FileSystemItem>();
+
+            // Load contents based on the provided or default backupVersion
+            store.SelectedBackup.LoadContents(backupVersion ?? BackupVersions.FirstOrDefault());
         }
+
 
     }
 

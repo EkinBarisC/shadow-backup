@@ -7,6 +7,7 @@ using Back_It_Up.Models;
 using Back_It_Up.Stores;
 using Back_It_Up.ViewModels.Windows;
 using GalaSoft.MvvmLight.Messaging;
+using System.Collections.ObjectModel;
 using System.Windows.Controls;
 using Wpf.Ui.Common;
 using Wpf.Ui.Controls;
@@ -17,6 +18,7 @@ namespace Back_It_Up.Views.Windows
     {
         public MainWindowViewModel ViewModel { get; }
         ISnackbarService snackbarService;
+        INavigationService NavigationService;
         private ControlAppearance snackbarAppearance = ControlAppearance.Secondary;
 
         public MainWindow(
@@ -33,6 +35,7 @@ namespace Back_It_Up.Views.Windows
             DataContext = this;
             InitializeComponent();
 
+            NavigationService = navigationService;
 
             navigationService.SetNavigationControl(NavigationView);
             snackbarService.SetSnackbarPresenter(SnackbarPresenter);
@@ -48,7 +51,7 @@ namespace Back_It_Up.Views.Windows
 
         private void OnBackupDeleted(string backupName)
         {
-            ShowSnackbarMessage("Backup Deleted");
+            //ShowSnackbarMessage("Backup Deleted");
             UpdateBackupList();
             while (NavigationView.CanGoBack)
                 NavigationView.GoBack();
@@ -56,7 +59,7 @@ namespace Back_It_Up.Views.Windows
 
         private void OnBackupCreated(string backupName)
         {
-            ShowSnackbarMessage("Backup Completed");
+            //ShowSnackbarMessage("Backup Completed");
             UpdateBackupList();
 
         }
@@ -67,16 +70,39 @@ namespace Back_It_Up.Views.Windows
 
         private void UpdateBackupList()
         {
-            ViewModel.LoadBackupLocations();
+            ObservableCollection<object> backupList = ViewModel.LoadBackupLocations();
 
-            for (int i = 0; i < ViewModel.MenuItems.Count; i++)
+            // Create a new NavigationView instance
+            var newNavigationView = new NavigationView
             {
-                if (ViewModel.MenuItems[i] is NavigationViewItem navigationViewItem && NavigationView.ItemTemplate != null && navigationViewItem.Template != NavigationView.ItemTemplate)
-                {
-                    navigationViewItem.Template = NavigationView.ItemTemplate;
-                }
+                MenuItemsSource = backupList,
+                // Copy other necessary properties from the old NavigationView to the new one
+                Header = NavigationView.Header,
+                IsPaneOpen = NavigationView.IsPaneOpen,
+                PaneDisplayMode = NavigationView.PaneDisplayMode,
+                // etc...
+            };
+
+            // Assign event handlers to the new NavigationView
+            newNavigationView.SelectionChanged += NavigationView_SelectionChanged;
+
+            // Replace the old NavigationView with the new one in the layout
+            // Assuming NavigationView is placed directly in the layout (like in a Grid)
+            var parent = NavigationView.Parent as Panel;
+            if (parent != null)
+            {
+                int index = parent.Children.IndexOf(NavigationView);
+                parent.Children.RemoveAt(index);
+                parent.Children.Insert(index, newNavigationView);
             }
+
+            // Reset the NavigationService to use the new NavigationView
+            NavigationService.SetNavigationControl(newNavigationView);
+
+            // Update the reference to the new NavigationView
+            NavigationView = newNavigationView;
         }
+
         public void ShowSnackbarMessage(string message)
         {
             snackbarService.Show(
@@ -95,16 +121,20 @@ namespace Back_It_Up.Views.Windows
                 BackupStore store = App.GetService<BackupStore>();
                 if (selectedItem.Content != null && selectedItem.Content.ToString() != "Add New Backup")
                 {
+                    store.SelectedBackup = new Backup();
                     store.SelectedBackup.BackupName = selectedItem.Content.ToString();
                     store.SelectedBackup.LoadBackup();
                 }
                 else if (selectedItem.Content != null && selectedItem.Content.ToString() == "Add New Backup")
                 {
+                    store.SelectedBackup = new Backup();
                     store.SelectedBackup.LoadBackup();
 
                 }
 
             }
         }
+
+
     }
 }

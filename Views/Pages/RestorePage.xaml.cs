@@ -38,7 +38,14 @@ namespace Back_It_Up.Views.Pages
         private void OnBackupLoaded(BackupVersion version)
         {
             BackupStore store = App.GetService<BackupStore>();
-            ViewModel.LoadContents(store.SelectedBackup.BackupVersions[0]);
+            if (store.SelectedBackup.BackupVersions != null && store.SelectedBackup.BackupVersions.Count > 0)
+            {
+                ViewModel.LoadContents(store.SelectedBackup.BackupVersions[0]);
+            }
+            else
+            {
+                ViewModel.LoadContents();
+            }
         }
 
     }

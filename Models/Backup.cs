@@ -1362,13 +1362,17 @@ namespace Back_It_Up.Models
 
         public async void LoadContents(BackupVersion backupVersion)
         {
-            Version = backupVersion;
-            string zipFilePath = backupVersion.BackupZipFilePath;
-            string metadata = await ReadMetadataFromZip(zipFilePath);
-            ObservableCollection<FileSystemItem> FileSystemItems = CreateFileSystemItemsFromJson(metadata);
-            BackupItems = FileSystemItems;
-            BackupSetting = new BackupSetting();
-            BackupSetting = BackupVersions[0].BackupSetting;
+            if (backupVersion != null)
+            {
+
+                Version = backupVersion;
+                string zipFilePath = backupVersion.BackupZipFilePath;
+                string metadata = await ReadMetadataFromZip(zipFilePath);
+                ObservableCollection<FileSystemItem> FileSystemItems = CreateFileSystemItemsFromJson(metadata);
+                BackupItems = FileSystemItems;
+                BackupSetting = new BackupSetting();
+                BackupSetting = BackupVersions[0].BackupSetting;
+            }
         }
 
         private FileSystemItem FindItemByPath(ObservableCollection<FileSystemItem> items, string path)
@@ -1402,6 +1406,10 @@ namespace Back_It_Up.Models
                 DestinationPath = Path.GetDirectoryName(locations[index]);
                 readManifestFile(DestinationPath);
                 Messenger.Default.Send<BackupVersion>(BackupVersions[0], BackupStatus.Loaded);
+            }
+            else
+            {
+                Messenger.Default.Send<BackupVersion>(null, BackupStatus.Loaded);
             }
         }
 

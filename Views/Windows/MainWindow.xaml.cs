@@ -5,6 +5,7 @@
 
 using Back_It_Up.Models;
 using Back_It_Up.Stores;
+using Back_It_Up.ViewModels.Pages;
 using Back_It_Up.ViewModels.Windows;
 using GalaSoft.MvvmLight.Messaging;
 using System.Collections.ObjectModel;
@@ -138,6 +139,8 @@ namespace Back_It_Up.Views.Windows
                 {
                     store.SelectedBackup = new Backup();
                     store.SelectedBackup.LoadBackup();
+                    SourceExplorerViewModel sourceExplorer = App.GetService<SourceExplorerViewModel>();
+                    sourceExplorer.ClearCheckedItems();
                 }
 
             }

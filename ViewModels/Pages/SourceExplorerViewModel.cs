@@ -105,6 +105,24 @@ namespace Back_It_Up.ViewModels.Pages
         }
 
 
+
+        public void ClearCheckedItems()
+        {
+            foreach (var item in fileSystemItems)
+            {
+                UncheckItemAndChildren(item);
+            }
+        }
+
+        private void UncheckItemAndChildren(FileSystemItem item)
+        {
+            item.IsSelected = false;
+            foreach (var child in item.Children)
+            {
+                UncheckItemAndChildren(child);
+            }
+        }
+
         public void CheckBox_Checked(FileSystemItem dataItem)
         {
             dataItem.IsExpanded = true;

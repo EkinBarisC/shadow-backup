@@ -104,7 +104,6 @@ namespace Back_It_Up.Views.Windows
 
             if (newNavigationView.MenuItemsSource is ObservableCollection<object> menuItems && menuItems.Count > 0)
             {
-                // Navigate to the page associated with the first item
                 if (menuItems[0] is NavigationViewItem firstItem && firstItem.Tag != null)
                 {
                     NavigationService.Navigate(firstItem.Tag.ToString());

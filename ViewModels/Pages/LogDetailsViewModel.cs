@@ -13,11 +13,19 @@ namespace Back_It_Up.ViewModels.Pages
         [ObservableProperty]
         private LogEntry logEntry;
 
+        private readonly INavigationService _navigationService;
 
-        public LogDetailsViewModel()
+        public LogDetailsViewModel(INavigationService navigationService)
         {
             BackupStore store = App.GetService<BackupStore>();
             LogEntry = store.CurrentLogEntry;
+            _navigationService = navigationService;
+        }
+
+        [RelayCommand]
+        public void GoBack()
+        {
+            _navigationService.GoBack();
         }
 
     }

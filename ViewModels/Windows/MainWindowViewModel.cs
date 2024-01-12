@@ -57,6 +57,7 @@ namespace Back_It_Up.ViewModels.Windows
             {
                 Content = "Add New Backup",
                 Icon = new SymbolIcon { Symbol = SymbolRegular.Add24 },
+                Tag = "add_new_backup",
                 TargetPageType = typeof(Views.Pages.DashboardPage)
             });
 

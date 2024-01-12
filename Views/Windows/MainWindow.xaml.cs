@@ -73,20 +73,23 @@ namespace Back_It_Up.Views.Windows
         {
             ObservableCollection<object> backupList = ViewModel.LoadBackupLocations();
 
-            // Create a new NavigationView instance
             var newNavigationView = new NavigationView
             {
                 MenuItemsSource = backupList,
                 Header = NavigationView.Header,
                 IsPaneOpen = NavigationView.IsPaneOpen,
                 PaneDisplayMode = NavigationView.PaneDisplayMode,
-                // Copy other properties as necessary
+                BreadcrumbBar = NavigationView.BreadcrumbBar,
+                Padding = NavigationView.Padding,
+                FooterMenuItemsSource = NavigationView.FooterMenuItemsSource,
+                FrameMargin = NavigationView.FrameMargin,
+                IsBackButtonVisible = NavigationView.IsBackButtonVisible,
+                IsPaneToggleVisible = NavigationView.IsPaneToggleVisible,
+                OpenPaneLength = NavigationView.OpenPaneLength,
+                TitleBar = NavigationView.TitleBar
             };
 
-            // Assign event handlers to the new NavigationView
             newNavigationView.SelectionChanged += NavigationView_SelectionChanged;
-
-            // Replace the old NavigationView with the new one in the layout
             var parent = NavigationView.Parent as Panel;
             if (parent != null)
             {
@@ -95,13 +98,18 @@ namespace Back_It_Up.Views.Windows
                 parent.Children.Insert(index, newNavigationView);
             }
 
-            // Reset the NavigationService to use the new NavigationView
             NavigationService.SetNavigationControl(newNavigationView);
 
-            // Update the reference to the new NavigationView
             NavigationView = newNavigationView;
 
-
+            if (newNavigationView.MenuItemsSource is ObservableCollection<object> menuItems && menuItems.Count > 0)
+            {
+                // Navigate to the page associated with the first item
+                if (menuItems[0] is NavigationViewItem firstItem && firstItem.Tag != null)
+                {
+                    NavigationService.Navigate(firstItem.Tag.ToString());
+                }
+            }
         }
 
 
@@ -131,7 +139,6 @@ namespace Back_It_Up.Views.Windows
                 {
                     store.SelectedBackup = new Backup();
                     store.SelectedBackup.LoadBackup();
-
                 }
 
             }

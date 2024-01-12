@@ -141,6 +141,8 @@ namespace Back_It_Up.Views.Windows
                     store.SelectedBackup.LoadBackup();
                     SourceExplorerViewModel sourceExplorer = App.GetService<SourceExplorerViewModel>();
                     sourceExplorer.ClearCheckedItems();
+                    DestinationExplorerViewModel destinationExplorer = App.GetService<DestinationExplorerViewModel>();
+                    destinationExplorer.ClearCheckedItems();
                 }
 
             }

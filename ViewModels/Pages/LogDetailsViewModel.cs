@@ -17,9 +17,15 @@ namespace Back_It_Up.ViewModels.Pages
 
         public LogDetailsViewModel(INavigationService navigationService)
         {
+
+            _navigationService = navigationService;
+            LoadLogEntry();
+        }
+
+        public void LoadLogEntry()
+        {
             BackupStore store = App.GetService<BackupStore>();
             LogEntry = store.CurrentLogEntry;
-            _navigationService = navigationService;
         }
 
         [RelayCommand]

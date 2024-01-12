@@ -3,6 +3,7 @@ using Back_It_Up.Models;
 using Back_It_Up.Stores;
 using Back_It_Up.ViewModels.Pages;
 using Back_It_Up.Views.Pages;
+using GalaSoft.MvvmLight.Messaging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -51,10 +52,10 @@ public partial class LogsViewModel : ObservableObject
     [RelayCommand]
     private void OpenLogDetails(LogEntry logEntry)
     {
-        // Navigate to LogDetailsPage with the selected log entry
         BackupStore store = App.GetService<BackupStore>();
         store.CurrentLogEntry = logEntry;
         _navigationService.Navigate(typeof(LogDetailsPage));
+        Messenger.Default.Send<string>("log", BackupStatus.Log);
     }
 
 

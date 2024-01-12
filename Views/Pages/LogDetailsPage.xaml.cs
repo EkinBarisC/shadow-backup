@@ -1,4 +1,6 @@
-﻿using Back_It_Up.ViewModels.Pages;
+﻿using Back_It_Up.Models;
+using Back_It_Up.ViewModels.Pages;
+using GalaSoft.MvvmLight.Messaging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,6 +29,14 @@ namespace Back_It_Up.Views.Pages
             ViewModel = viewModel;
             DataContext = this;
             InitializeComponent();
+            Messenger.Default.Register<string>(this, BackupStatus.Log, OnLogSelected);
         }
+
+        public void OnLogSelected(string entry)
+        {
+            ViewModel.LoadLogEntry();
+        }
+
+
     }
 }

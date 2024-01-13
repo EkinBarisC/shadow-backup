@@ -308,7 +308,7 @@ namespace Back_It_Up.Models
                         // Handle full backup restore
                         string zipFilePath = selectedVersion.BackupZipFilePath;
                         if (reason == "restore")
-                            await ExtractSelectedFilesFromZip(zipFilePath, extractPath, RestoreItems);
+                            await ExtractSelectedFilesFromZip(Version, extractPath, RestoreItems);
                         else
                             ExtractZipFileToDirectory(zipFilePath, extractPath);
 
@@ -323,7 +323,7 @@ namespace Back_It_Up.Models
                             if (version == BackupVersions.First())
                             {
                                 if (reason == "restore")
-                                    await ExtractSelectedFilesFromZip(zipFilePath, extractPath, RestoreItems);
+                                    await ExtractSelectedFilesFromZip(version, extractPath, RestoreItems);
                                 else
                                     ExtractZipFileToDirectory(zipFilePath, extractPath);
                             }
@@ -464,7 +464,7 @@ namespace Back_It_Up.Models
                 if (version == BackupVersions.First())
                 {
                     if (reason == "restore")
-                        await ExtractSelectedFilesFromZip(zipFilePath, restoreDirectory, RestoreItems);
+                        await ExtractSelectedFilesFromZip(version, restoreDirectory, RestoreItems);
                     else
                         ExtractZipFileToDirectory(zipFilePath, restoreDirectory);
                 }
@@ -483,31 +483,28 @@ namespace Back_It_Up.Models
             }
         }
 
-        private async Task ExtractSelectedFilesFromZip(string zipFilePath, string extractPath, ObservableCollection<FileSystemItem> restoreItems)
+        private async Task ExtractSelectedFilesFromZip(BackupVersion version, string extractPath, ObservableCollection<FileSystemItem> restoreItems)
         {
-            using (ZipArchive archive = ZipFile.OpenRead(zipFilePath))
+            using (ZipArchive archive = ZipFile.OpenRead(version.BackupZipFilePath))
             {
-                foreach (ZipArchiveEntry entry in archive.Entries)
+                // Create a dictionary to quickly find entries by their paths
+                var entryDictionary = archive.Entries.ToDictionary(e => e.FullName.Replace("/", "\\"), e => e);
+
+                foreach (var item in restoreItems)
                 {
-                    foreach (var item in restoreItems)
+                    string relativePath = await GetRelativePathAsync(version, item.Name);
+                    if (entryDictionary.TryGetValue(relativePath, out ZipArchiveEntry entry))
                     {
-                        string relativePath = await GetRelativePathAsync(item.Name);
+                        // Entry found, extract it
+                        string completeFilePath = Path.Combine(extractPath, relativePath);
+                        string directoryPath = Path.GetDirectoryName(completeFilePath);
 
-                        string normalizedEntryPath = entry.FullName.Replace("/", "\\");
-
-                        if (normalizedEntryPath.Equals(relativePath, StringComparison.OrdinalIgnoreCase))
+                        if (!Directory.Exists(directoryPath))
                         {
-                            string completeFilePath = Path.Combine(extractPath, normalizedEntryPath);
-                            string directoryPath = Path.GetDirectoryName(completeFilePath);
-
-                            if (!Directory.Exists(directoryPath))
-                            {
-                                Directory.CreateDirectory(directoryPath);
-                            }
-
-                            entry.ExtractToFile(completeFilePath, true);
-                            break; // Break out of the inner loop once a match is found
+                            Directory.CreateDirectory(directoryPath);
                         }
+
+                        entry.ExtractToFile(completeFilePath, true);
                     }
                 }
             }
@@ -599,10 +596,10 @@ namespace Back_It_Up.Models
             }
         }
 
-        private async Task<string> GetRelativePathAsync(string fileName)
+        private async Task<string> GetRelativePathAsync(BackupVersion version, string fileName)
         {
 
-            string metadata = await ReadMetadataFromZip(Version.BackupZipFilePath);
+            string metadata = await ReadMetadataFromZip(version.BackupZipFilePath);
             List<MetadataItem> fullMetadata = JsonSerializer.Deserialize<List<MetadataItem>>(metadata) ?? new List<MetadataItem>();
 
             var fileMetadata = fullMetadata.FirstOrDefault(m => Path.GetFileName(m.Path) == fileName && m.Type == "file");

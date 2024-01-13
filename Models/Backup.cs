@@ -294,25 +294,24 @@ namespace Back_It_Up.Models
                 Log.Information($"Started restore process for '{BackupName}'");
 
                 // Determine the restore directory based on the reason
-                string restoreDirectory = reason == "restore"
-                ? Path.Combine(RestorePath, BackupName)
-                : Path.Combine(DestinationPath, BackupName, "Contents");
+                string extractPath = Path.Combine(DestinationPath, BackupName, "Contents");
 
-                if (!Directory.Exists(restoreDirectory))
+                if (!Directory.Exists(extractPath))
                 {
-                    Directory.CreateDirectory(restoreDirectory);
+                    Directory.CreateDirectory(extractPath);
                 }
 
                 // Check the backup method of the selected version
-                switch (selectedVersion.BackupSetting.SelectedBackupMethod)
+                switch (BackupVersions[0].BackupSetting.SelectedBackupMethod)
                 {
                     case BackupMethod.Full:
                         // Handle full backup restore
                         string zipFilePath = selectedVersion.BackupZipFilePath;
                         if (reason == "restore")
-                            await ExtractSelectedFilesFromZip(zipFilePath, restoreDirectory, RestoreItems);
+                            await ExtractSelectedFilesFromZip(zipFilePath, extractPath, RestoreItems);
                         else
-                            ExtractZipFileToDirectory(zipFilePath, restoreDirectory);
+                            ExtractZipFileToDirectory(zipFilePath, extractPath);
+
                         break;
 
                     case BackupMethod.Incremental:
@@ -324,16 +323,16 @@ namespace Back_It_Up.Models
                             if (version == BackupVersions.First())
                             {
                                 if (reason == "restore")
-                                    await ExtractSelectedFilesFromZip(zipFilePath, restoreDirectory, RestoreItems);
+                                    await ExtractSelectedFilesFromZip(zipFilePath, extractPath, RestoreItems);
                                 else
-                                    ExtractZipFileToDirectory(zipFilePath, restoreDirectory);
+                                    ExtractZipFileToDirectory(zipFilePath, extractPath);
                             }
                             else
                             {
                                 if (reason == "restore")
-                                    await ApplySelectedPatchesFromIncrementalBackup(zipFilePath, restoreDirectory, RestoreItems);
+                                    await ApplySelectedPatchesFromIncrementalBackup(zipFilePath, extractPath, RestoreItems);
                                 else
-                                    await ApplyPatchesFromIncrementalBackup(zipFilePath, restoreDirectory);
+                                    await ApplyPatchesFromIncrementalBackup(zipFilePath, extractPath);
                             }
 
                             if (version.Version == selectedVersion.Version)
@@ -347,6 +346,23 @@ namespace Back_It_Up.Models
                         Log.Warning($"Unknown backup method: {selectedVersion.BackupSetting.SelectedBackupMethod}");
                         throw new InvalidOperationException("Unknown backup method.");
                 }
+
+                if (!string.IsNullOrEmpty(RestorePath))
+                {
+                    // Move files to the specified restore path
+                    MoveFilesToDirectory(extractPath, RestorePath);
+                }
+                else
+                {
+                    // Restore files to their original location
+                    foreach (var item in RestoreItems)
+                    {
+                        string sourcePath = Path.Combine(extractPath, item.Name);
+                        string destinationPath = item.Path;
+                        MoveFileOrDirectory(sourcePath, destinationPath);
+                    }
+                }
+
                 Log.Information($"Restore completed successfully for '{BackupName}'");
 
             }
@@ -354,6 +370,76 @@ namespace Back_It_Up.Models
             {
                 Log.Error(ex, "An error occurred during RestoreBackup: {ErrorMessage}", ex.Message);
                 throw;
+            }
+        }
+
+        private void MoveFileOrDirectory(string sourcePath, string destinationPath)
+        {
+            if (File.Exists(sourcePath))
+            {
+                // Move file
+                System.IO.File.Move(sourcePath, destinationPath, true);
+            }
+            else if (Directory.Exists(sourcePath))
+            {
+                // Create the destination directory if it doesn't exist
+                if (!Directory.Exists(destinationPath))
+                {
+                    Directory.CreateDirectory(destinationPath);
+                }
+
+                // Move each file and subdirectory
+                foreach (var file in Directory.GetFiles(sourcePath))
+                {
+                    var destFile = Path.Combine(destinationPath, Path.GetFileName(file));
+                    System.IO.File.Move(file, destFile, true);
+                }
+                foreach (var dir in Directory.GetDirectories(sourcePath))
+                {
+                    var destDir = Path.Combine(destinationPath, Path.GetFileName(dir));
+                    MoveFileOrDirectory(dir, destDir);
+                }
+
+                // Delete the source directory after moving its contents
+                Directory.Delete(sourcePath, true);
+            }
+        }
+
+
+        private void MoveFilesToDirectory(string sourceDir, string destDir)
+        {
+            // Create the destination directory if it doesn't exist
+            if (!Directory.Exists(destDir))
+            {
+                Directory.CreateDirectory(destDir);
+            }
+
+            // Move files from source to destination
+            foreach (var file in Directory.GetFiles(sourceDir))
+            {
+                string destFilePath = Path.Combine(destDir, Path.GetFileName(file));
+                System.IO.File.Move(file, destFilePath, overwrite: true);
+            }
+
+            // Recursively move subdirectories
+            foreach (var directory in Directory.GetDirectories(sourceDir))
+            {
+                string destSubDirPath = Path.Combine(destDir, Path.GetFileName(directory));
+                if (!Directory.Exists(destSubDirPath))
+                {
+                    Directory.Move(directory, destSubDirPath);
+                }
+                else
+                {
+                    // If the subdirectory already exists at the destination, move its contents
+                    MoveFilesToDirectory(directory, destSubDirPath);
+                }
+            }
+
+            // Optionally, delete the source directory if it's now empty
+            if (!Directory.EnumerateFileSystemEntries(sourceDir).Any())
+            {
+                Directory.Delete(sourceDir);
             }
         }
 
@@ -641,7 +727,12 @@ namespace Back_It_Up.Models
 
         private void ApplyPatchToFile(string originalFilePath, string patchFilePath)
         {
-
+            // Ensure the directory for the new file exists
+            string directoryPath = Path.GetDirectoryName(originalFilePath);
+            if (!Directory.Exists(directoryPath))
+            {
+                Directory.CreateDirectory(directoryPath);
+            }
 
             // The file path for the new file generated after applying the patch
             string newFilePath = originalFilePath + ".new";
@@ -658,6 +749,7 @@ namespace Back_It_Up.Models
             File.Delete(originalFilePath);
             File.Move(newFilePath, originalFilePath);
         }
+
 
 
 

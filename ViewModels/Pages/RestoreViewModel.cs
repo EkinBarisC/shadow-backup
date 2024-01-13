@@ -129,6 +129,7 @@ namespace Back_It_Up.ViewModels.Pages
         public void LoadContents(BackupVersion backupVersion = null)
         {
             BackupStore store = App.GetService<BackupStore>();
+            store.SelectedBackup.RestoreItems = new ObservableCollection<FileSystemItem>();
 
             // Reset BackupVersions if backupVersion is not provided
             BackupVersions = backupVersion != null ? store.SelectedBackup.BackupVersions : new List<BackupVersion>();
@@ -136,10 +137,10 @@ namespace Back_It_Up.ViewModels.Pages
             SelectedVersion = backupVersion;
 
             // Reset FileSystemItems if backupVersion is not provided
-            FileSystemItems = backupVersion != null ? store.SelectedBackup.BackupItems : new ObservableCollection<FileSystemItem>();
 
             // Load contents based on the provided or default backupVersion
             store.SelectedBackup.LoadContents(backupVersion ?? BackupVersions.FirstOrDefault());
+            FileSystemItems = backupVersion != null ? store.SelectedBackup.BackupItems : new ObservableCollection<FileSystemItem>();
         }
 
 

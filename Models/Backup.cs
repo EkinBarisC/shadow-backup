@@ -601,7 +601,10 @@ namespace Back_It_Up.Models
 
         private async Task<string> GetRelativePathAsync(string fileName)
         {
-            List<MetadataItem> fullMetadata = await LoadPreviousBackupMetadata("first");
+
+            string metadata = await ReadMetadataFromZip(Version.BackupZipFilePath);
+            List<MetadataItem> fullMetadata = JsonSerializer.Deserialize<List<MetadataItem>>(metadata) ?? new List<MetadataItem>();
+
             var fileMetadata = fullMetadata.FirstOrDefault(m => Path.GetFileName(m.Path) == fileName && m.Type == "file");
             if (fileMetadata == null)
             {
@@ -1383,7 +1386,7 @@ namespace Back_It_Up.Models
                 }
             }
 
-            UpdateFolderChildrenRecursively(fileSystemItems);
+            //UpdateFolderChildrenRecursively(fileSystemItems);
 
             return fileSystemItems;
         }
@@ -1454,18 +1457,63 @@ namespace Back_It_Up.Models
 
         public async void LoadContents(BackupVersion backupVersion)
         {
-            if (backupVersion != null)
+            if (backupVersion == null)
             {
+                return;
+            }
 
-                Version = backupVersion;
-                string zipFilePath = backupVersion.BackupZipFilePath;
+            Version = backupVersion;
+
+            // Create a new collection to hold the cumulative file system items
+            ObservableCollection<FileSystemItem> cumulativeItems = new ObservableCollection<FileSystemItem>();
+
+            foreach (var version in BackupVersions.Where(v => v.Version <= backupVersion.Version))
+            {
+                string zipFilePath = version.BackupZipFilePath;
                 string metadata = await ReadMetadataFromZip(zipFilePath);
-                ObservableCollection<FileSystemItem> FileSystemItems = CreateFileSystemItemsFromJson(metadata);
-                BackupItems = FileSystemItems;
-                BackupSetting = new BackupSetting();
-                BackupSetting = BackupVersions[0].BackupSetting;
+                ObservableCollection<FileSystemItem> versionItems = CreateFileSystemItemsFromJson(metadata);
+
+                // Merge version items into cumulativeItems
+                MergeFileSystemItems(cumulativeItems, versionItems);
+            }
+
+            BackupItems = cumulativeItems;
+            BackupSetting = BackupVersions[0].BackupSetting; // Assuming this is still relevant
+        }
+
+        private void MergeFileSystemItems(ObservableCollection<FileSystemItem> cumulativeItems, ObservableCollection<FileSystemItem> versionItems)
+        {
+            foreach (var item in versionItems)
+            {
+                var existingItem = cumulativeItems.FirstOrDefault(i => i.Path == item.Path);
+
+                if (existingItem == null)
+                {
+                    // If the item doesn't exist in cumulativeItems, add it
+                    cumulativeItems.Add(item);
+                }
+                else
+                {
+                    // If the item already exists, update it
+                    //existingItem.UpdateFrom(item);
+
+                    // If the existing item is a folder, merge its children
+                    if (existingItem.IsFolder)
+                    {
+                        MergeFileSystemItems(existingItem.Children, item.Children);
+                    }
+                }
+
+                // If the current item is a folder, ensure its children are processed
+                if (item.IsFolder && existingItem == null)
+                {
+                    // The item was newly added, so its Children are not yet merged
+                    MergeFileSystemItems(item.Children, item.Children);
+                }
             }
         }
+
+
 
         private FileSystemItem FindItemByPath(ObservableCollection<FileSystemItem> items, string path)
         {

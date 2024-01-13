@@ -48,5 +48,11 @@ namespace Back_It_Up.Views.UserControls
 
             }
         }
+
+        private void BackupNameTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            BackupStore store = App.GetService<BackupStore>();
+            store.SelectedBackup.BackupName = BackupNameTextBox.Text;
+        }
     }
 }

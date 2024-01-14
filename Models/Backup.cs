@@ -94,6 +94,9 @@ namespace Back_It_Up.Models
                 TaskDefinition td = ts.NewTask();
                 td.RegistrationInfo.Description = "Perform scheduled backup";
                 td.Principal.RunLevel = TaskRunLevel.Highest;  // Run with the highest privileges
+                                                               // Configure task settings
+                td.Settings.DisallowStartIfOnBatteries = false;
+                td.Settings.StopIfGoingOnBatteries = false;
 
                 Trigger trigger;
 

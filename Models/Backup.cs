@@ -258,7 +258,7 @@ namespace Back_It_Up.Models
 
         public async Task PerformIncrementalBackup()
         {
-            List<MetadataItem> res = await LoadPreviousBackupMetadata("latest");
+            List<MetadataItem> res = await LoadAllPreviousBackupMetadata();
             List<FileSystemItem> changedFiles = await GetChangedFiles(res, Path.Combine(DestinationPath, BackupName, "Contents"));
             if (!changedFiles.Any())
             {
@@ -285,6 +285,38 @@ namespace Back_It_Up.Models
 
             await CreateIncrementalBackupZipAndCleanup(changedFiles);
 
+        }
+
+        public async Task<List<MetadataItem>> LoadAllPreviousBackupMetadata()
+        {
+            if (string.IsNullOrEmpty(BackupName))
+            {
+                return new List<MetadataItem>();
+            }
+
+            string manifestPath = Path.Combine(DestinationPath, BackupName, "manifest.json");
+            if (!File.Exists(manifestPath))
+            {
+                return new List<MetadataItem>();
+            }
+
+            string manifestJson = File.ReadAllText(manifestPath);
+            var backupVersions = JsonSerializer.Deserialize<List<BackupVersion>>(manifestJson) ?? new List<BackupVersion>();
+
+            Dictionary<string, MetadataItem> latestMetadataItems = new Dictionary<string, MetadataItem>();
+            foreach (var backupVersion in backupVersions)
+            {
+                string metadataJson = await ReadMetadataFromZip(backupVersion.BackupZipFilePath);
+                var metadataItems = JsonSerializer.Deserialize<List<MetadataItem>>(metadataJson) ?? new List<MetadataItem>();
+
+                foreach (var item in metadataItems)
+                {
+                    // If an item with the same path exists but is older, it will be replaced
+                    latestMetadataItems[item.Path] = item;
+                }
+            }
+
+            return latestMetadataItems.Values.ToList(); // Convert the dictionary values to a list
         }
 
         public async Task RestoreBackup(string reason, BackupVersion selectedVersion)

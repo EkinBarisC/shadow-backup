@@ -26,6 +26,7 @@ using Task = System.Threading.Tasks.Task;
 using Microsoft.Win32.TaskScheduler;
 using Trigger = Microsoft.Win32.TaskScheduler.Trigger;
 using Serilog;
+using MimeTypes;
 
 namespace Back_It_Up.Models
 {
@@ -955,27 +956,45 @@ namespace Back_It_Up.Models
             foreach (var item in items)
             {
                 var previousItem = previousMetadata.FirstOrDefault(pm => pm.Path == item.Path);
-                if (previousItem == null || await HasFileChangedAsync(item, previousItem, restoredBackupDirectory))
-                {
-                    if (!item.IsFolder) changedFiles.Add(item);
-                }
-
                 if (item.IsFolder)
                 {
-                    await CheckAndAddChangedFiles(item.Children, previousMetadata, changedFiles, restoredBackupDirectory);
+                    // If the item is a folder, get its current contents and recursively check for changes
+                    var currentFolderItems = Directory.EnumerateFileSystemEntries(item.Path).Select(subItem =>
+                    {
+                        string mimeType = MimeTypeMap.GetMimeType(System.IO.Path.GetExtension(subItem));
+                        bool isSubItemFolder = Directory.Exists(subItem);
+                        string fileType = isSubItemFolder ? "file folder" : mimeType.Substring(0, mimeType.IndexOf('/'));
+                        long fileSize = isSubItemFolder ? 0 : new System.IO.FileInfo(subItem).Length;
+                        return new FileSystemItem(subItem, System.IO.Path.GetFileName(subItem), isSubItemFolder, fileType, fileSize, item);
+                    });
+
+                    await CheckAndAddChangedFiles(currentFolderItems, previousMetadata, changedFiles, restoredBackupDirectory);
+                }
+                else if (previousItem == null || await HasFileChangedAsync(item, previousItem, restoredBackupDirectory))
+                {
+                    // If the item is a file and it's new or has changed, add it to the list of changed files
+                    changedFiles.Add(item);
                 }
             }
         }
 
+
+
         private async Task<bool> HasFileChangedAsync(FileSystemItem currentItem, MetadataItem previousItem, string restoredBackupDirectory)
         {
-            if (currentItem.IsFolder)
+            // If the file is new (not in previous metadata), it's changed
+            if (previousItem == null)
             {
-                return false;
+                return true;
             }
 
-            string restoredFilePath = Path.Combine(restoredBackupDirectory, currentItem.Path);
-            string currentChecksum = await CalculateFileChecksum(restoredFilePath);
+            if (currentItem.IsFolder)
+            {
+                return false; // Folder changes are handled by checking their contents
+            }
+
+            string currentFilePath = currentItem.Path; // Use the actual current file path
+            string currentChecksum = await CalculateFileChecksum(currentFilePath);
             return currentChecksum != previousItem.Checksum;
         }
 

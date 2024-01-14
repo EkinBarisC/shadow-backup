@@ -36,7 +36,7 @@
               Value="{Binding ViewModel.SelectedMinute, Mode=TwoWay}"
               Minimum="0"
               Maximum="59"
-              SpinButtonPlacementMode="Inline" />
+              SpinButtonPlacementMode="Inline" Margin="10,0,0,0" />
             </StackPanel>
         </StackPanel>
 

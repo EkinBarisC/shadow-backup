@@ -26,12 +26,17 @@
             <DatePicker x:Name="StartDatePicker" SelectedDate="{Binding ViewModel.SelectedDate}" Width="400"  HorizontalAlignment="Center" />
             <!--clock-->
             <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
-                <ComboBox x:Name="HourComboBox" Width="50"
-              ItemsSource="{Binding ViewModel.Hours}"
-                          SelectedIndex="{Binding ViewModel.SelectedHour, Mode=TwoWay}" />
+                <ui:NumberBox x:Name="HourNumberBox"
+              Value="{Binding ViewModel.SelectedHour, Mode=TwoWay}"
+              Minimum="0"
+              Maximum="23"
+              SpinButtonPlacementMode="Inline" />
                 <TextBlock Text=":" VerticalAlignment="Center" Margin="10,0,0,0"/>
-                <ComboBox x:Name="MinuteComboBox" Width="50" Margin="10,0,0,0"
-              ItemsSource="{Binding ViewModel.Minutes}" SelectedItem="{Binding ViewModel.SelectedMinute, Mode=TwoWay}" />
+                <ui:NumberBox x:Name="MinuteNumberBox"
+              Value="{Binding ViewModel.SelectedMinute, Mode=TwoWay}"
+              Minimum="0"
+              Maximum="59"
+              SpinButtonPlacementMode="Inline" />
             </StackPanel>
         </StackPanel>
 

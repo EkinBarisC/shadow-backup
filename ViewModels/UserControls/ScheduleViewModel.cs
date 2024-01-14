@@ -14,7 +14,7 @@ namespace Back_It_Up.ViewModels.UserControls
     public partial class ScheduleViewModel : ObservableObject
     {
         [ObservableProperty]
-        private List<string> frequencyTypeItems = new List<string> { "Minutes", "Days", "Weeks", "Months", "Years" };
+        private List<string> frequencyTypeItems = new List<string> { "Minutes", "Days", "Weeks", "Months" };
 
         [ObservableProperty]
         private DateTime selectedDate = DateTime.Now;
@@ -23,16 +23,16 @@ namespace Back_It_Up.ViewModels.UserControls
         private DateTime startTime;
 
         [ObservableProperty]
-        private int frequency;
+        private int frequency = 1;
 
         [ObservableProperty]
         private string frequencyType = "Weeks";
 
         [ObservableProperty]
-        private int selectedHour;
+        private int selectedHour = 9;
 
         [ObservableProperty]
-        private int selectedMinute;
+        private int selectedMinute = 0;
 
         [ObservableProperty]
         private ObservableCollection<int> hours = new ObservableCollection<int>(Enumerable.Range(0, 24));

@@ -20,9 +20,7 @@ using Wpf.Ui.Controls;
 
 namespace Back_It_Up.Views.Pages
 {
-    /// <summary>
-    /// Interaction logic for RestorePage.xaml
-    /// </summary>
+
     public partial class RestorePage : INavigableView<RestoreViewModel>
     {
         public RestoreViewModel ViewModel { get; }

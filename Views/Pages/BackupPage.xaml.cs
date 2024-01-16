@@ -18,9 +18,7 @@ using Wpf.Ui.Controls;
 
 namespace Back_It_Up.Views.Pages
 {
-    /// <summary>
-    /// Interaction logic for BackupPage.xaml
-    /// </summary>
+
     public partial class BackupPage : INavigableView<BackupViewModel>
     {
         public BackupViewModel ViewModel { get; }

@@ -20,9 +20,7 @@ using System.Windows.Shapes;
 
 namespace Back_It_Up.Views.UserControls
 {
-    /// <summary>
-    /// Interaction logic for SourceUserControl.xaml
-    /// </summary>
+
     public partial class SourceUserControl : UserControl
     {
         public SourceViewModel ViewModel { get; }

@@ -16,9 +16,7 @@ using System.Windows.Shapes;
 
 namespace Back_It_Up.Views.Pages
 {
-    /// <summary>
-    /// Interaction logic for LogsPage.xaml
-    /// </summary>
+
     public partial class LogsPage : Page
     {
         public LogsViewModel ViewModel { get; }

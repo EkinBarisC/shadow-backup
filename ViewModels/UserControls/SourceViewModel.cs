@@ -1,7 +1,4 @@
-﻿// This Source Code Form is subject to the terms of the MIT License.
-// If a copy of the MIT was not distributed with this file, You can obtain one at https://opensource.org/licenses/MIT.
-// Copyright (C) Leszek Pomianowski and WPF UI Contributors.
-// All Rights Reserved.
+﻿
 
 using Alphaleonis.Win32.Filesystem;
 using Alphaleonis.Win32.Vss;
@@ -57,7 +54,6 @@ namespace Back_It_Up.ViewModels.Pages
         {
             BackupStore store = App.GetService<BackupStore>();
             await store.SelectedBackup.PerformBackup();
-            //send message backup complete
             Messenger.Default.Send<string>("Backup Complete", BackupStatus.Complete);
 
         }
@@ -84,7 +80,6 @@ namespace Back_It_Up.ViewModels.Pages
         {
             BackupStore store = App.GetService<BackupStore>();
             await store.SelectedBackup.DeleteBackup();
-            //send message backup complete
             store.SelectedBackup = new Backup();
             Messenger.Default.Send<string>("Backup Complete", BackupStatus.Deleted);
 

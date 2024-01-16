@@ -10,12 +10,11 @@ namespace Back_It_Up.Models
     {
         public DateTimeOffset Timestamp { get; set; }
         public string LogLevel { get; set; }
-        public string Message { get; set; } // backup completed, restore completed, started
+        public string Message { get; set; }
         public string FormattedTimestamp
         {
             get
             {
-                // Convert the DateTimeOffset to local time and format it
                 return Timestamp.LocalDateTime.ToString("yyyy-MM-dd HH:mm:ss");
             }
         }

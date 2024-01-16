@@ -117,7 +117,7 @@ namespace Back_It_Up.Models
             Children = new ObservableCollection<FileSystemItem>();
             if (IsFolder)
             {
-                AddDummyChild(); // Assuming you still want to use the dummy child for lazy loading
+                AddDummyChild();
             }
         }
 
@@ -188,7 +188,6 @@ namespace Back_It_Up.Models
                         item.Parent = this;
                         Children.Add(item);
 
-                        // TODO: add dummy child only for lazy loading
                         if (item.IsFolder)
                         {
                             item.LoadContents();

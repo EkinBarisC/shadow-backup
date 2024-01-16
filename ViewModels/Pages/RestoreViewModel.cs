@@ -1,8 +1,4 @@
-﻿// This Source Code Form is subject to the terms of the MIT License.
-// If a copy of the MIT was not distributed with this file, You can obtain one at https://opensource.org/licenses/MIT.
-// Copyright (C) Leszek Pomianowski and WPF UI Contributors.
-// All Rights Reserved.
-
+﻿
 using Alphaleonis.Win32.Filesystem;
 using Back_It_Up.Models;
 using Back_It_Up.Stores;
@@ -45,7 +41,6 @@ namespace Back_It_Up.ViewModels.Pages
             CheckBoxCheckedCommand = new RelayCommand<FileSystemItem>(CheckBoxChecked);
             CheckBoxUncheckedCommand = new RelayCommand<FileSystemItem>(CheckBoxUnchecked);
             OpenDestinationExplorerCommand = new RelayCommand(OpenDestinationExplorer);
-            // get backup store
             BackupStore store = App.GetService<BackupStore>();
             BackupVersions = store.SelectedBackup.BackupVersions;
         }
@@ -131,14 +126,10 @@ namespace Back_It_Up.ViewModels.Pages
             BackupStore store = App.GetService<BackupStore>();
             store.SelectedBackup.RestoreItems = new ObservableCollection<FileSystemItem>();
 
-            // Reset BackupVersions if backupVersion is not provided
             BackupVersions = backupVersion != null ? store.SelectedBackup.BackupVersions : new List<BackupVersion>();
 
             SelectedVersion = backupVersion;
 
-            // Reset FileSystemItems if backupVersion is not provided
-
-            // Load contents based on the provided or default backupVersion
             store.SelectedBackup.LoadContents(backupVersion ?? BackupVersions.FirstOrDefault());
             FileSystemItems = backupVersion != null ? store.SelectedBackup.BackupItems : new ObservableCollection<FileSystemItem>();
         }

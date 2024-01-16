@@ -1,7 +1,4 @@
-﻿// This Source Code Form is subject to the terms of the MIT License.
-// If a copy of the MIT was not distributed with this file, You can obtain one at https://opensource.org/licenses/MIT.
-// Copyright (C) Leszek Pomianowski and WPF UI Contributors.
-// All Rights Reserved.
+﻿
 
 using Back_It_Up.Services;
 using Back_It_Up.Stores;
@@ -88,21 +85,16 @@ namespace Back_It_Up
 
             if (e.Args.Length > 0 && e.Args[0] == "-s")
             {
-                // Assume the second argument is the backup name
-
-                // Perform backup logic
                 string backupName = e.Args.Length > 1 ? e.Args[1] : string.Empty;
                 BackupStore store = GetService<BackupStore>();
                 await store.SelectedBackup.PerformScheduledBackup(backupName);
 
-                // Shutdown the application after the backup is complete
                 await _host.StopAsync();
                 _host.Dispose();
                 Current.Shutdown();
                 return;
             }
 
-            // Normal startup
             _host.Start();
             var mainWindow = _host.Services.GetRequiredService<MainWindow>();
             mainWindow.Show();

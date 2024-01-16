@@ -23,11 +23,9 @@ public partial class LogsViewModel : ObservableObject
 
     private async void LoadLogs()
     {
-        // Initialize the collection
         Logs = new ObservableCollection<LogEntry>();
         string logFilePath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BackItUp", "logs.txt");
 
-        // Read the log file and parse each line
         var logLines = new List<string>();
         using (var fileStream = new FileStream(logFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
         using (var reader = new StreamReader(fileStream))
@@ -61,7 +59,6 @@ public partial class LogsViewModel : ObservableObject
 
     private LogEntry ParseLogLine(string line)
     {
-        // Split the line by spaces, but limit the number of parts to handle fixed format parts
         var parts = line.Split(new[] { ' ' }, 5);
 
         if (parts.Length >= 5)
@@ -70,7 +67,6 @@ public partial class LogsViewModel : ObservableObject
             if (DateTimeOffset.TryParse(dateTimePart, out var timestamp))
             {
                 var logLevel = parts[3].Trim('[', ']');
-                // The message is everything after the 4th space
                 var message = parts[4];
 
                 return new LogEntry

@@ -1,8 +1,4 @@
-﻿// This Source Code Form is subject to the terms of the MIT License.
-// If a copy of the MIT was not distributed with this file, You can obtain one at https://opensource.org/licenses/MIT.
-// Copyright (C) Leszek Pomianowski and WPF UI Contributors.
-// All Rights Reserved.
-
+﻿
 using Alphaleonis.Win32.Filesystem;
 using Back_It_Up.Stores;
 using GalaSoft.MvvmLight.Messaging;
@@ -46,7 +42,6 @@ namespace Back_It_Up.ViewModels.Windows
         {
 
             BackupStore store = App.GetService<BackupStore>();
-            // Load backup locations from the file or any other storage mechanism
             string[] backupPathsArray = store.SelectedBackup.LoadBackupLocationsFromFile();
             List<string> backupNames = backupPathsArray.Select(path => Path.GetFileNameWithoutExtension(path)).ToList();
             List<string> backupLocations = backupNames.ToList();
@@ -67,7 +62,7 @@ namespace Back_It_Up.ViewModels.Windows
                 {
                     Content = location,
                     Icon = new SymbolIcon { Symbol = SymbolRegular.Document24 },
-                    Tag = "backup_" + location, // Prefix to distinguish backup items
+                    Tag = "backup_" + location,
                     TargetPageType = typeof(Views.Pages.DashboardPage)
                 });
             }

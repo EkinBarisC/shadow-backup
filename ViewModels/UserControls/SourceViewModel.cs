@@ -1,7 +1,4 @@
-﻿// This Source Code Form is subject to the terms of the MIT License.
-// If a copy of the MIT was not distributed with this file, You can obtain one at https://opensource.org/licenses/MIT.
-// Copyright (C) Leszek Pomianowski and WPF UI Contributors.
-// All Rights Reserved.
+﻿
 
 using Alphaleonis.Win32.Filesystem;
 using Alphaleonis.Win32.Vss;
@@ -21,6 +18,8 @@ using System.Windows.Input;
 using System.Xml;
 using Wpf.Ui.Common;
 using Wpf.Ui.Controls;
+using MessageBox = Wpf.Ui.Controls.MessageBox;
+using MessageBoxButton = System.Windows.MessageBoxButton;
 
 namespace Back_It_Up.ViewModels.Pages
 {
@@ -53,17 +52,38 @@ namespace Back_It_Up.ViewModels.Pages
 
         private async void PerformBackup()
         {
-            Logger.Information("Backup Started");
             BackupStore store = App.GetService<BackupStore>();
             await store.SelectedBackup.PerformBackup();
-            //send message backup complete
             Messenger.Default.Send<string>("Backup Complete", BackupStatus.Complete);
-            Logger.Information("Backup Completed");
-            Log.CloseAndFlush();
 
         }
 
+        [RelayCommand]
+        private async void ShowDeleteConfirmationDialog(object backupItem)
+        {
+            var uiMessageBox = new Wpf.Ui.Controls.MessageBox
+            {
+                Title = "WPF UI Message Box",
+                Content = "Do you want to delete this backup?",
+                PrimaryButtonText = "Yes",
+                CloseButtonText = "No",
+            };
 
+            var result = await uiMessageBox.ShowDialogAsync();
+            if (result == Wpf.Ui.Controls.MessageBoxResult.Primary)
+            {
+                DeleteBackup();
+            }
+        }
+
+        private async void DeleteBackup()
+        {
+            BackupStore store = App.GetService<BackupStore>();
+            await store.SelectedBackup.DeleteBackup();
+            store.SelectedBackup = new Backup();
+            Messenger.Default.Send<string>("Backup Complete", BackupStatus.Deleted);
+
+        }
 
     }
 }

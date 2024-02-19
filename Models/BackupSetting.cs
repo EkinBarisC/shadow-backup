@@ -49,7 +49,9 @@ namespace Back_It_Up.Models
         Complete,
         Failed,
         RestoreComplete,
-        Loaded
+        Loaded,
+        Deleted,
+        Log
     }
 
 }

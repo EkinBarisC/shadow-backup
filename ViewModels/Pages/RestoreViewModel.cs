@@ -1,8 +1,4 @@
-﻿// This Source Code Form is subject to the terms of the MIT License.
-// If a copy of the MIT was not distributed with this file, You can obtain one at https://opensource.org/licenses/MIT.
-// Copyright (C) Leszek Pomianowski and WPF UI Contributors.
-// All Rights Reserved.
-
+﻿
 using Alphaleonis.Win32.Filesystem;
 using Back_It_Up.Models;
 using Back_It_Up.Stores;
@@ -45,7 +41,6 @@ namespace Back_It_Up.ViewModels.Pages
             CheckBoxCheckedCommand = new RelayCommand<FileSystemItem>(CheckBoxChecked);
             CheckBoxUncheckedCommand = new RelayCommand<FileSystemItem>(CheckBoxUnchecked);
             OpenDestinationExplorerCommand = new RelayCommand(OpenDestinationExplorer);
-            // get backup store
             BackupStore store = App.GetService<BackupStore>();
             BackupVersions = store.SelectedBackup.BackupVersions;
         }
@@ -70,9 +65,21 @@ namespace Back_It_Up.ViewModels.Pages
         private async void Restore()
         {
             BackupStore store = App.GetService<BackupStore>();
-            await store.SelectedBackup.RestoreIncrementalBackup("restore", SelectedVersion);
+            await store.SelectedBackup.RestoreBackup("restore", SelectedVersion);
             Messenger.Default.Send<string>("Restore Complete", BackupStatus.RestoreComplete);
 
+        }
+
+        [RelayCommand]
+        private void SelectAll()
+        {
+            BackupStore store = App.GetService<BackupStore>();
+
+            foreach (var item in FileSystemItems)
+            {
+                item.SetIsSelectedRecursively(true);
+                AddItemWithChildrenToRestoreItems(item, store.SelectedBackup.RestoreItems);
+            }
         }
 
         private void CheckBoxChecked(FileSystemItem dataItem)
@@ -114,14 +121,19 @@ namespace Back_It_Up.ViewModels.Pages
         }
 
         [RelayCommand]
-        public void LoadContents(BackupVersion backupVersion)
+        public void LoadContents(BackupVersion backupVersion = null)
         {
             BackupStore store = App.GetService<BackupStore>();
-            BackupVersions = store.SelectedBackup.BackupVersions;
+            store.SelectedBackup.RestoreItems = new ObservableCollection<FileSystemItem>();
+
+            BackupVersions = backupVersion != null ? store.SelectedBackup.BackupVersions : new List<BackupVersion>();
+
             SelectedVersion = backupVersion;
-            store.SelectedBackup.LoadContents(BackupVersions[0]);
-            FileSystemItems = store.SelectedBackup.BackupItems;
+
+            store.SelectedBackup.LoadContents(backupVersion ?? BackupVersions.FirstOrDefault());
+            FileSystemItems = backupVersion != null ? store.SelectedBackup.BackupItems : new ObservableCollection<FileSystemItem>();
         }
+
 
     }
 

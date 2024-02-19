@@ -1,8 +1,4 @@
-﻿// This Source Code Form is subject to the terms of the MIT License.
-// If a copy of the MIT was not distributed with this file, You can obtain one at https://opensource.org/licenses/MIT.
-// Copyright (C) Leszek Pomianowski and WPF UI Contributors.
-// All Rights Reserved.
-
+﻿
 using Alphaleonis.Win32.Filesystem;
 using Back_It_Up.Stores;
 using GalaSoft.MvvmLight.Messaging;
@@ -18,15 +14,7 @@ namespace Back_It_Up.ViewModels.Windows
         private string _applicationTitle = "Back It Up";
 
         [ObservableProperty]
-        private ObservableCollection<object> _menuItems = new()
-        {
-            new NavigationViewItem()
-            {
-                Content = "Add New Backup",
-                Icon = new SymbolIcon { Symbol = SymbolRegular.Add24 },
-                TargetPageType = typeof(Views.Pages.DashboardPage)
-            }
-        };
+        private ObservableCollection<object> _menuItems = new ObservableCollection<object>();
 
         [ObservableProperty]
         private ObservableCollection<object> _footerMenuItems = new()
@@ -47,35 +35,41 @@ namespace Back_It_Up.ViewModels.Windows
 
         public MainWindowViewModel()
         {
-            LoadBackupLocations();
+            MenuItems = LoadBackupLocations();
         }
 
-        public void LoadBackupLocations()
+        public ObservableCollection<object> LoadBackupLocations()
         {
-            var backupItems = MenuItems.OfType<NavigationViewItem>()
-                                       .Where(item => item.Tag is string && ((string)item.Tag).StartsWith("backup_"))
-                                       .ToList();
-            foreach (var item in backupItems)
-            {
-                MenuItems.Remove(item);
-            }
+
             BackupStore store = App.GetService<BackupStore>();
-            // Load backup locations from the file or any other storage mechanism
             string[] backupPathsArray = store.SelectedBackup.LoadBackupLocationsFromFile();
             List<string> backupNames = backupPathsArray.Select(path => Path.GetFileNameWithoutExtension(path)).ToList();
             List<string> backupLocations = backupNames.ToList();
 
+            ObservableCollection<object> backupList = new ObservableCollection<object>();
+
+            backupList.Add(new NavigationViewItem()
+            {
+                Content = "Add New Backup",
+                Icon = new SymbolIcon { Symbol = SymbolRegular.Add24 },
+                Tag = "add_new_backup",
+                TargetPageType = typeof(Views.Pages.DashboardPage)
+            });
+
             foreach (var location in backupLocations)
             {
-                MenuItems.Add(new NavigationViewItem()
+                backupList.Add(new NavigationViewItem()
                 {
                     Content = location,
                     Icon = new SymbolIcon { Symbol = SymbolRegular.Document24 },
-                    Tag = "backup_" + location, // Prefix to distinguish backup items
+                    Tag = "backup_" + location,
                     TargetPageType = typeof(Views.Pages.DashboardPage)
                 });
             }
+            return backupList;
+
         }
+
 
 
 

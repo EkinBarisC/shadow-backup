@@ -17,9 +17,7 @@ using Wpf.Ui.Controls;
 
 namespace Back_It_Up.Views.Pages
 {
-    /// <summary>
-    /// Interaction logic for SourceExplorerPage.xaml
-    /// </summary>
+
     public partial class DestinationExplorerPage : INavigableView<DestinationExplorerViewModel>
     {
         public DestinationExplorerViewModel ViewModel { get; }

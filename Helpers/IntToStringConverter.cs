@@ -16,7 +16,7 @@ namespace Back_It_Up.Helpers
             if (int.TryParse(value as string, out int intValue))
                 return intValue;
 
-            return 0; // Or a default value of your choice
+            return 0;
         }
     }
 }

@@ -25,6 +25,8 @@ using Path = Alphaleonis.Win32.Filesystem.Path;
 using Task = System.Threading.Tasks.Task;
 using Microsoft.Win32.TaskScheduler;
 using Trigger = Microsoft.Win32.TaskScheduler.Trigger;
+using Serilog;
+using MimeTypes;
 
 namespace Back_It_Up.Models
 {
@@ -38,6 +40,39 @@ namespace Back_It_Up.Models
         public string BackupName;
         public List<BackupVersion> BackupVersions;
         public BackupVersion Version;
+
+        public async Task DeleteBackup()
+        {
+            try
+            {
+                string backupFolderPath = Path.Combine(DestinationPath, BackupName);
+                if (Directory.Exists(backupFolderPath))
+                {
+                    Directory.Delete(backupFolderPath, recursive: true);
+                }
+            }
+            catch (Exception ex)
+            {
+            }
+
+            try
+            {
+                string appDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BackItUp");
+                string backupLocationsFilePath = Path.Combine(appDataFolder, "backup_locations.txt");
+
+                if (File.Exists(backupLocationsFilePath))
+                {
+                    var allLines = await System.IO.File.ReadAllLinesAsync(backupLocationsFilePath);
+                    var updatedLines = allLines.Where(line => !line.Trim().Equals(Path.Combine(DestinationPath, BackupName), StringComparison.OrdinalIgnoreCase)).ToList();
+
+                    await System.IO.File.WriteAllLinesAsync(backupLocationsFilePath, updatedLines);
+                }
+            }
+            catch (Exception ex)
+            {
+            }
+        }
+
 
         public async Task PerformScheduledBackup(string backupName)
         {
@@ -55,7 +90,10 @@ namespace Back_It_Up.Models
 
                 TaskDefinition td = ts.NewTask();
                 td.RegistrationInfo.Description = "Perform scheduled backup";
-                td.Principal.RunLevel = TaskRunLevel.Highest;  // Run with the highest privileges
+                td.Principal.RunLevel = TaskRunLevel.Highest;
+
+                td.Settings.DisallowStartIfOnBatteries = false;
+                td.Settings.StopIfGoingOnBatteries = false;
 
                 Trigger trigger;
 
@@ -63,7 +101,6 @@ namespace Back_It_Up.Models
                 {
                     case "Minutes":
                     case "Hours":
-                        // Use DailyTrigger with a repetition pattern
                         var dailyTrigger = new DailyTrigger { DaysInterval = 1 };
                         dailyTrigger.StartBoundary = startTime;
                         TimeSpan repeatInterval = frequencyType == "Minutes" ?
@@ -78,21 +115,14 @@ namespace Back_It_Up.Models
                     case "Weeks":
                         trigger = new WeeklyTrigger { WeeksInterval = (short)frequency, StartBoundary = startTime };
                         break;
-                    case "Years":
-                        // For yearly, consider using a MonthlyTrigger and adjust accordingly
-                        trigger = new MonthlyTrigger(); // Adjust for yearly scheduling
-                        trigger.StartBoundary = startTime;
-                        break;
                     default:
                         throw new ArgumentException("Invalid frequency type.");
                 }
 
                 td.Triggers.Add(trigger);
 
-                // Create an action that will launch the application
                 td.Actions.Add(new ExecAction(executablePath, arguments, null));
 
-                // Register the task in the root folder of the Task Scheduler
                 ts.RootFolder.RegisterTaskDefinition(taskName, td);
             }
         }
@@ -101,45 +131,53 @@ namespace Back_It_Up.Models
 
         public async Task PerformBackup()
         {
-            LoadBackup();
+            Log.Information($"Backup started for '{BackupName}'");
 
-            switch (BackupSetting.SelectedBackupMethod)
+            try
             {
-                case BackupMethod.Full:
-                    if (BackupSetting.SelectedCleaningOption == CleaningOption.CleanUpOldBackups && BackupSetting.DaysToKeepBackups.HasValue)
-                    {
-                        await DeleteBackupsOlderThan(BackupSetting.DaysToKeepBackups.Value);
-                    }
-                    await PerformFullBackup();
-                    break;
-
-                case BackupMethod.Incremental:
-                    if (DoesPreviousBackupExist())
-                    {
-                        // Check if it's time for a periodic full backup
-                        if (BackupSetting.SelectedBackupScheme == BackupScheme.PeriodicFullBackup &&
-                            ShouldPerformPeriodicFullBackup())
+                LoadBackup();
+                switch (BackupSetting.SelectedBackupMethod)
+                {
+                    case BackupMethod.Full:
+                        if (BackupSetting.SelectedCleaningOption == CleaningOption.CleanUpOldBackups && BackupSetting.DaysToKeepBackups.HasValue)
                         {
-                            // Perform a full backup
-                            await CleanUpOldBackups();
-                            await PerformFullBackup();
+                            await DeleteBackupsOlderThan(BackupSetting.DaysToKeepBackups.Value);
+                        }
+                        await PerformFullBackup();
+                        break;
+
+                    case BackupMethod.Incremental:
+                        if (DoesPreviousBackupExist())
+                        {
+                            if (BackupSetting.SelectedBackupScheme == BackupScheme.PeriodicFullBackup &&
+                                ShouldPerformPeriodicFullBackup())
+                            {
+                                await CleanUpOldBackups();
+                                await PerformFullBackup();
+                            }
+                            else
+                            {
+                                await RestoreIncrementalBackup("backup", Version);
+                                await PerformIncrementalBackup();
+                            }
                         }
                         else
                         {
-                            // Perform an incremental backup
-                            await RestoreIncrementalBackup("backup", Version);
-                            await PerformIncrementalBackup();
+                            await PerformFullBackup();
                         }
-                    }
-                    else
-                    {
-                        await PerformFullBackup();
-                    }
-                    break;
+                        break;
 
-                default:
-                    throw new InvalidOperationException("Unknown backup method.");
+                    default:
+                        Log.Warning($"Unknown backup method: {BackupSetting.SelectedBackupMethod}");
+                        throw new InvalidOperationException("Unknown backup method.");
+                }
             }
+            catch (Exception ex)
+            {
+                Log.Error(ex, $"An error occurred during PerformBackup: {ex.Message}");
+                throw;
+            }
+            Log.Information($"Backup completed successfully for '{BackupName}'");
         }
 
 
@@ -149,16 +187,12 @@ namespace Back_It_Up.Models
         {
             string backupFolderPath = Path.Combine(DestinationPath, BackupName);
 
-            // Load the current manifest
             List<BackupVersion> currentVersions = await ReadManifestFileAsync();
 
-            // Calculate the threshold date
             DateTime thresholdDate = DateTime.Now.AddDays(-days);
 
-            // Identify backups older than the threshold
             var oldBackups = currentVersions.Where(version => version.DateCreated < thresholdDate);
 
-            // Delete the old backup ZIP files and remove them from the manifest
             foreach (var backup in oldBackups.ToList())
             {
                 string zipPath = Path.Combine(backupFolderPath, backup.BackupZipFilePath);
@@ -169,7 +203,6 @@ namespace Back_It_Up.Models
                 currentVersions.Remove(backup);
             }
 
-            // Save the updated manifest
             string manifestJson = JsonSerializer.Serialize(currentVersions, new JsonSerializerOptions { WriteIndented = true });
             string manifestPath = Path.Combine(backupFolderPath, "manifest.json");
             await System.IO.File.WriteAllTextAsync(manifestPath, manifestJson);
@@ -178,10 +211,8 @@ namespace Back_It_Up.Models
 
         private bool ShouldPerformPeriodicFullBackup()
         {
-            // Calculate the number of incremental backups since the last full backup
             int incrementalCount = BackupVersions.Count();
 
-            // Check if the number of incremental backups has reached the frequency limit
             return BackupSetting.FullBackupFrequency.HasValue &&
                    incrementalCount >= BackupSetting.FullBackupFrequency.Value;
         }
@@ -209,7 +240,7 @@ namespace Back_It_Up.Models
 
         public async Task PerformIncrementalBackup()
         {
-            List<MetadataItem> res = await LoadPreviousBackupMetadata("latest");
+            List<MetadataItem> res = await LoadAllPreviousBackupMetadata();
             List<FileSystemItem> changedFiles = await GetChangedFiles(res, Path.Combine(DestinationPath, BackupName, "Contents"));
             if (!changedFiles.Any())
             {
@@ -229,7 +260,7 @@ namespace Back_It_Up.Models
                 string tempFilePath = await GetHierarchicalPathAsync(restorePath, file.Name);
 
                 string changedFilePath = file.Path;
-                string patchFilePath = Path.Combine(DestinationPath, BackupName, "Contents", file.Name + ".octopatch"); // Path where the patch file will be saved
+                string patchFilePath = Path.Combine(DestinationPath, BackupName, "Contents", file.Name + ".octopatch");
 
                 await GeneratePatchUsingOctodiffAsync(tempFilePath, changedFilePath, patchFilePath);
             }
@@ -237,6 +268,179 @@ namespace Back_It_Up.Models
             await CreateIncrementalBackupZipAndCleanup(changedFiles);
 
         }
+
+        public async Task<List<MetadataItem>> LoadAllPreviousBackupMetadata()
+        {
+            if (string.IsNullOrEmpty(BackupName))
+            {
+                return new List<MetadataItem>();
+            }
+
+            string manifestPath = Path.Combine(DestinationPath, BackupName, "manifest.json");
+            if (!File.Exists(manifestPath))
+            {
+                return new List<MetadataItem>();
+            }
+
+            string manifestJson = File.ReadAllText(manifestPath);
+            var backupVersions = JsonSerializer.Deserialize<List<BackupVersion>>(manifestJson) ?? new List<BackupVersion>();
+
+            Dictionary<string, MetadataItem> latestMetadataItems = new Dictionary<string, MetadataItem>();
+            foreach (var backupVersion in backupVersions)
+            {
+                string metadataJson = await ReadMetadataFromZip(backupVersion.BackupZipFilePath);
+                var metadataItems = JsonSerializer.Deserialize<List<MetadataItem>>(metadataJson) ?? new List<MetadataItem>();
+
+                foreach (var item in metadataItems)
+                {
+                    latestMetadataItems[item.Path] = item;
+                }
+            }
+
+            return latestMetadataItems.Values.ToList();
+        }
+
+        public async Task RestoreBackup(string reason, BackupVersion selectedVersion)
+        {
+            try
+            {
+                Log.Information($"Started restore process for '{BackupName}'");
+
+                string extractPath = Path.Combine(DestinationPath, BackupName, "Contents");
+
+                if (!Directory.Exists(extractPath))
+                {
+                    Directory.CreateDirectory(extractPath);
+                }
+
+                switch (BackupVersions[0].BackupSetting.SelectedBackupMethod)
+                {
+                    case BackupMethod.Full:
+                        string zipFilePath = selectedVersion.BackupZipFilePath;
+                        if (reason == "restore")
+                            await ExtractSelectedFilesFromZip(Version, extractPath, RestoreItems);
+                        else
+                            ExtractZipFileToDirectory(zipFilePath, extractPath);
+
+                        break;
+
+                    case BackupMethod.Incremental:
+                        foreach (var version in BackupVersions)
+                        {
+                            zipFilePath = version.BackupZipFilePath;
+
+                            if (version == BackupVersions.First())
+                            {
+                                if (reason == "restore")
+                                    await ExtractSelectedFilesFromZip(version, extractPath, RestoreItems);
+                                else
+                                    ExtractZipFileToDirectory(zipFilePath, extractPath);
+                            }
+                            else
+                            {
+                                if (reason == "restore")
+                                    await ApplySelectedPatchesFromIncrementalBackup(zipFilePath, extractPath, RestoreItems);
+                                else
+                                    await ApplyPatchesFromIncrementalBackup(zipFilePath, extractPath);
+                            }
+
+                            if (version.Version == selectedVersion.Version)
+                            {
+                                break;
+                            }
+                        }
+                        break;
+
+                    default:
+                        Log.Warning($"Unknown backup method: {selectedVersion.BackupSetting.SelectedBackupMethod}");
+                        throw new InvalidOperationException("Unknown backup method.");
+                }
+
+                if (!string.IsNullOrEmpty(RestorePath))
+                {
+                    MoveFilesToDirectory(extractPath, RestorePath);
+                }
+                else
+                {
+                    foreach (var item in RestoreItems)
+                    {
+                        string sourcePath = Path.Combine(extractPath, item.Name);
+                        string destinationPath = item.Path;
+                        MoveFileOrDirectory(sourcePath, destinationPath);
+                    }
+                }
+
+                Log.Information($"Restore completed successfully for '{BackupName}'");
+
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "An error occurred during RestoreBackup: {ErrorMessage}", ex.Message);
+                throw;
+            }
+        }
+
+        private void MoveFileOrDirectory(string sourcePath, string destinationPath)
+        {
+            if (File.Exists(sourcePath))
+            {
+                System.IO.File.Move(sourcePath, destinationPath, true);
+            }
+            else if (Directory.Exists(sourcePath))
+            {
+                if (!Directory.Exists(destinationPath))
+                {
+                    Directory.CreateDirectory(destinationPath);
+                }
+
+                foreach (var file in Directory.GetFiles(sourcePath))
+                {
+                    var destFile = Path.Combine(destinationPath, Path.GetFileName(file));
+                    System.IO.File.Move(file, destFile, true);
+                }
+                foreach (var dir in Directory.GetDirectories(sourcePath))
+                {
+                    var destDir = Path.Combine(destinationPath, Path.GetFileName(dir));
+                    MoveFileOrDirectory(dir, destDir);
+                }
+
+                Directory.Delete(sourcePath, true);
+            }
+        }
+
+
+        private void MoveFilesToDirectory(string sourceDir, string destDir)
+        {
+            if (!Directory.Exists(destDir))
+            {
+                Directory.CreateDirectory(destDir);
+            }
+
+            foreach (var file in Directory.GetFiles(sourceDir))
+            {
+                string destFilePath = Path.Combine(destDir, Path.GetFileName(file));
+                System.IO.File.Move(file, destFilePath, overwrite: true);
+            }
+
+            foreach (var directory in Directory.GetDirectories(sourceDir))
+            {
+                string destSubDirPath = Path.Combine(destDir, Path.GetFileName(directory));
+                if (!Directory.Exists(destSubDirPath))
+                {
+                    Directory.Move(directory, destSubDirPath);
+                }
+                else
+                {
+                    MoveFilesToDirectory(directory, destSubDirPath);
+                }
+            }
+
+            if (!Directory.EnumerateFileSystemEntries(sourceDir).Any())
+            {
+                Directory.Delete(sourceDir);
+            }
+        }
+
 
         public async Task RestoreIncrementalBackup(string reason, BackupVersion selectedVersion)
         {
@@ -258,7 +462,7 @@ namespace Back_It_Up.Models
                 if (version == BackupVersions.First())
                 {
                     if (reason == "restore")
-                        await ExtractSelectedFilesFromZip(zipFilePath, restoreDirectory, RestoreItems);
+                        await ExtractSelectedFilesFromZip(version, restoreDirectory, RestoreItems);
                     else
                         ExtractZipFileToDirectory(zipFilePath, restoreDirectory);
                 }
@@ -277,31 +481,26 @@ namespace Back_It_Up.Models
             }
         }
 
-        private async Task ExtractSelectedFilesFromZip(string zipFilePath, string extractPath, ObservableCollection<FileSystemItem> restoreItems)
+        private async Task ExtractSelectedFilesFromZip(BackupVersion version, string extractPath, ObservableCollection<FileSystemItem> restoreItems)
         {
-            using (ZipArchive archive = ZipFile.OpenRead(zipFilePath))
+            using (ZipArchive archive = ZipFile.OpenRead(version.BackupZipFilePath))
             {
-                foreach (ZipArchiveEntry entry in archive.Entries)
+                var entryDictionary = archive.Entries.ToDictionary(e => e.FullName.Replace("/", "\\"), e => e);
+
+                foreach (var item in restoreItems)
                 {
-                    foreach (var item in restoreItems)
+                    string relativePath = await GetRelativePathAsync(version, item.Name);
+                    if (entryDictionary.TryGetValue(relativePath, out ZipArchiveEntry entry))
                     {
-                        string relativePath = await GetRelativePathAsync(item.Name);
+                        string completeFilePath = Path.Combine(extractPath, relativePath);
+                        string directoryPath = Path.GetDirectoryName(completeFilePath);
 
-                        string normalizedEntryPath = entry.FullName.Replace("/", "\\");
-
-                        if (normalizedEntryPath.Equals(relativePath, StringComparison.OrdinalIgnoreCase))
+                        if (!Directory.Exists(directoryPath))
                         {
-                            string completeFilePath = Path.Combine(extractPath, normalizedEntryPath);
-                            string directoryPath = Path.GetDirectoryName(completeFilePath);
-
-                            if (!Directory.Exists(directoryPath))
-                            {
-                                Directory.CreateDirectory(directoryPath);
-                            }
-
-                            entry.ExtractToFile(completeFilePath, true);
-                            break; // Break out of the inner loop once a match is found
+                            Directory.CreateDirectory(directoryPath);
                         }
+
+                        entry.ExtractToFile(completeFilePath, true);
                     }
                 }
             }
@@ -317,27 +516,22 @@ namespace Back_It_Up.Models
                 {
                     if (patchEntry.FullName == "metadata.json")
                     {
-                        // Skip metadata file
                         continue;
                     }
 
                     string originalFileName = Path.GetFileNameWithoutExtension(patchEntry.FullName);
-                    // Check if the original file is in the restore items list
                     if (!restoreItems.Any(item => item.Name.Equals(originalFileName, StringComparison.OrdinalIgnoreCase)))
                     {
-                        continue; // Skip if not in the restore list
+                        continue;
                     }
 
                     string denemeFilePath = await GetHierarchicalPathAsync(restoreDirectory, originalFileName);
                     string patchFilePath = Path.Combine(restoreDirectory, patchEntry.FullName);
 
-                    // Extract the patch file temporarily
                     patchEntry.ExtractToFile(patchFilePath, overwrite: true);
 
-                    // Apply the patch
                     ApplyPatchToFile(denemeFilePath, patchFilePath);
 
-                    // Delete the extracted patch file after applying
                     File.Delete(patchFilePath);
                 }
             }
@@ -371,7 +565,6 @@ namespace Back_It_Up.Models
                 {
                     if (patchEntry.FullName == "metadata.json")
                     {
-                        // Skip metadata file
                         continue;
                     }
                     string originalFileName = Path.GetFileNameWithoutExtension(patchEntry.FullName);
@@ -381,21 +574,21 @@ namespace Back_It_Up.Models
 
                     string patchFilePath = Path.Combine(restoreDirectory, patchEntry.FullName);
 
-                    // Extract the patch file temporarily
                     patchEntry.ExtractToFile(patchFilePath, overwrite: true);
 
-                    // Apply the patch
                     ApplyPatchToFile(denemeFilePath, patchFilePath);
 
-                    // Delete the extracted patch file after applying
                     File.Delete(patchFilePath);
                 }
             }
         }
 
-        private async Task<string> GetRelativePathAsync(string fileName)
+        private async Task<string> GetRelativePathAsync(BackupVersion version, string fileName)
         {
-            List<MetadataItem> fullMetadata = await LoadPreviousBackupMetadata("first");
+
+            string metadata = await ReadMetadataFromZip(version.BackupZipFilePath);
+            List<MetadataItem> fullMetadata = JsonSerializer.Deserialize<List<MetadataItem>>(metadata) ?? new List<MetadataItem>();
+
             var fileMetadata = fullMetadata.FirstOrDefault(m => Path.GetFileName(m.Path) == fileName && m.Type == "file");
             if (fileMetadata == null)
             {
@@ -408,15 +601,13 @@ namespace Back_It_Up.Models
 
         private async Task<string> GetHierarchicalPathAsync(string restoreDirectory, string fileName)
         {
-            // Load the metadata for all backups, or just the necessary ones.
 
-            foreach (var version in BackupVersions) // Assuming each version has a Date property
+            foreach (var version in BackupVersions)
             {
 
                 string metadataJson = await ReadMetadataFromZip(version.BackupZipFilePath);
                 List<MetadataItem> metadata = JsonSerializer.Deserialize<List<MetadataItem>>(metadataJson) ?? new List<MetadataItem>();
 
-                //here
                 var fileMetadata = metadata.FirstOrDefault(m => Path.GetFileName(m.Path) == fileName && m.Type == "file");
 
                 if (fileMetadata != null)
@@ -426,46 +617,10 @@ namespace Back_It_Up.Models
                 }
             }
 
-            // If the file wasn't found in any backup, fallback to the default behavior.
             return Path.Combine(restoreDirectory, fileName);
         }
 
 
-        //private async Task<string> GetHierarchicalPathAsync(string restoreDirectory, string fileName)
-        //{
-        //    List<MetadataItem> fullMetadata = await LoadPreviousBackupMetadata("first");
-        //    var fileMetadata = fullMetadata.FirstOrDefault(m => Path.GetFileName(m.Path) == fileName && m.Type == "file");
-        //    if (fileMetadata == null)
-        //    {
-        //        return Path.Combine(restoreDirectory, fileName);
-        //    }
-
-        //    string hierarchicalPath = BuildHierarchicalPath(fileMetadata.Path, fileMetadata.RootPath, fullMetadata);
-        //    return Path.Combine(restoreDirectory, hierarchicalPath, fileName);
-        //}
-
-        //private string BuildHierarchicalPath(string currentPath, string rootPath, List<MetadataItem> metadata)
-        //{
-        //    if (currentPath.Equals(rootPath, StringComparison.OrdinalIgnoreCase))
-        //    {
-        //        return "";
-        //    }
-
-        //    var parentItem = metadata
-        //        .Where(m => currentPath.StartsWith(m.Path + "\\", StringComparison.OrdinalIgnoreCase) && m.Type == "folder")
-        //        .OrderByDescending(m => m.Path.Length)
-        //        .FirstOrDefault();
-
-        //    if (parentItem == null || parentItem.Path.Equals(rootPath, StringComparison.OrdinalIgnoreCase))
-        //    {
-        //        return Path.GetFileName(Path.GetDirectoryName(currentPath));
-        //    }
-
-        //    string parentPath = BuildHierarchicalPath(parentItem.Path, rootPath, metadata);
-        //    string currentRelativePath = GetRelativePathFromRoot(parentItem.Path, parentPath);
-
-        //    return currentRelativePath;
-        //}
 
         private string BuildHierarchicalPath(string currentPath, string rootPath, List<MetadataItem> metadata)
         {
@@ -474,25 +629,25 @@ namespace Back_It_Up.Models
 
             if (formattedCurrentPath.Equals(formattedRootPath, StringComparison.OrdinalIgnoreCase))
             {
-                return Path.GetFileName(formattedRootPath); // Return the last part of rootPath
+                return Path.GetFileName(formattedRootPath);
             }
 
             if (formattedCurrentPath.StartsWith(formattedRootPath, StringComparison.OrdinalIgnoreCase))
             {
                 var relativePath = formattedCurrentPath.Substring(formattedRootPath.Length).TrimStart('\\');
                 string trimmedRootPath = Path.GetFileName(formattedRootPath);
-                string result = Path.Combine(trimmedRootPath, relativePath); // Include last part of rootPath
+                string result = Path.Combine(trimmedRootPath, relativePath);
                 return result;
             }
 
             var parentItem = metadata
                 .Where(m => formattedCurrentPath.StartsWith(m.Path + "\\", StringComparison.OrdinalIgnoreCase) && m.Type == "folder")
-                .OrderByDescending(m => m.Path.Length) // Ensure the closest parent is selected
+                .OrderByDescending(m => m.Path.Length)
                 .FirstOrDefault();
 
             if (parentItem == null)
             {
-                return Path.GetFileName(formattedCurrentPath); // Return just the file/folder name if no parent found
+                return Path.GetFileName(formattedCurrentPath);
             }
 
             string parentPath = BuildHierarchicalPath(parentItem.Path, formattedRootPath, metadata);
@@ -521,9 +676,12 @@ namespace Back_It_Up.Models
 
         private void ApplyPatchToFile(string originalFilePath, string patchFilePath)
         {
+            string directoryPath = Path.GetDirectoryName(originalFilePath);
+            if (!Directory.Exists(directoryPath))
+            {
+                Directory.CreateDirectory(directoryPath);
+            }
 
-
-            // The file path for the new file generated after applying the patch
             string newFilePath = originalFilePath + ".new";
 
             using (FileStream basisStream = new FileStream(originalFilePath, FileMode.OpenOrCreate, FileAccess.Read, FileShare.Read))
@@ -534,10 +692,10 @@ namespace Back_It_Up.Models
                 deltaApplier.Apply(basisStream, new BinaryDeltaReader(deltaStream, new ConsoleProgressReporter()), newFileStream);
             }
 
-            // Replace the original file with the new file
             File.Delete(originalFilePath);
             File.Move(newFilePath, originalFilePath);
         }
+
 
 
 
@@ -559,7 +717,6 @@ namespace Back_It_Up.Models
 
                 using (ZipArchive zipArchive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
                 {
-                    // Add patch files to the ZIP archive
                     foreach (var file in changedFiles)
                     {
                         string patchFilePath = Path.Combine(DestinationPath, BackupName, "Contents", file.Name + ".octopatch");
@@ -569,7 +726,6 @@ namespace Back_It_Up.Models
                         }
                     }
 
-                    // Add metadata file to the ZIP archive
                     string metadataFilePath = Path.Combine(DestinationPath, BackupName, "Contents", "metadata.json");
                     if (File.Exists(metadataFilePath))
                     {
@@ -607,7 +763,6 @@ namespace Back_It_Up.Models
             string manifestPath = Path.Combine(DestinationPath, BackupName, "manifest.json");
             List<BackupVersion> backupVersions;
 
-            // Check if the manifest file exists and read it
             if (File.Exists(manifestPath))
             {
                 string manifestJson = await System.IO.File.ReadAllTextAsync(manifestPath);
@@ -618,10 +773,8 @@ namespace Back_It_Up.Models
                 backupVersions = new List<BackupVersion>();
             }
 
-            // Calculate the next version number
             int nextVersionNumber = backupVersions.Any() ? backupVersions.Max(v => v.Version) + 1 : 1;
 
-            // Add a new entry for the current backup version
             BackupVersion newVersion = new BackupVersion
             {
                 Version = nextVersionNumber,
@@ -631,7 +784,6 @@ namespace Back_It_Up.Models
 
             backupVersions.Add(newVersion);
 
-            // Serialize and write the updated manifest back to the file
             string updatedManifestJson = JsonSerializer.Serialize(backupVersions, new JsonSerializerOptions { WriteIndented = true });
             await System.IO.File.WriteAllTextAsync(manifestPath, updatedManifestJson);
             return nextVersionNumber;
@@ -640,14 +792,12 @@ namespace Back_It_Up.Models
 
         public async Task GeneratePatchUsingOctodiffAsync(string originalFilePath, string modifiedFilePath, string patchFilePath)
         {
-            // Ensure the output directory for the patch file exists
             var patchFileDirectory = Path.GetDirectoryName(patchFilePath);
             if (!Directory.Exists(patchFileDirectory))
             {
                 Directory.CreateDirectory(patchFileDirectory);
             }
 
-            // Create signature of the original file
             var signatureBuilder = new SignatureBuilder();
             using (var basisStream = new FileStream(originalFilePath, FileMode.OpenOrCreate, FileAccess.Read, FileShare.Read))
             using (var signatureStream = new FileStream(patchFilePath + ".sig", FileMode.Create, FileAccess.Write, FileShare.None))
@@ -655,7 +805,6 @@ namespace Back_It_Up.Models
                 signatureBuilder.Build(basisStream, new SignatureWriter(signatureStream));
             }
 
-            // Generate patch
             var deltaBuilder = new DeltaBuilder();
             using (var newFileStream = new FileStream(modifiedFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
             using (var signatureFileStream = new FileStream(patchFilePath + ".sig", FileMode.Open, FileAccess.Read, FileShare.Read))
@@ -664,7 +813,6 @@ namespace Back_It_Up.Models
                 deltaBuilder.BuildDelta(newFileStream, new SignatureReader(signatureFileStream, new ConsoleProgressReporter()), new AggregateCopyOperationsDecorator(new BinaryDeltaWriter(deltaStream)));
             }
 
-            // Clean up: delete the signature file
             File.Delete(patchFilePath + ".sig");
         }
 
@@ -708,27 +856,42 @@ namespace Back_It_Up.Models
             foreach (var item in items)
             {
                 var previousItem = previousMetadata.FirstOrDefault(pm => pm.Path == item.Path);
-                if (previousItem == null || await HasFileChangedAsync(item, previousItem, restoredBackupDirectory))
-                {
-                    if (!item.IsFolder) changedFiles.Add(item);
-                }
-
                 if (item.IsFolder)
                 {
-                    await CheckAndAddChangedFiles(item.Children, previousMetadata, changedFiles, restoredBackupDirectory);
+                    var currentFolderItems = Directory.EnumerateFileSystemEntries(item.Path).Select(subItem =>
+                    {
+                        string mimeType = MimeTypeMap.GetMimeType(System.IO.Path.GetExtension(subItem));
+                        bool isSubItemFolder = Directory.Exists(subItem);
+                        string fileType = isSubItemFolder ? "file folder" : mimeType.Substring(0, mimeType.IndexOf('/'));
+                        long fileSize = isSubItemFolder ? 0 : new System.IO.FileInfo(subItem).Length;
+                        return new FileSystemItem(subItem, System.IO.Path.GetFileName(subItem), isSubItemFolder, fileType, fileSize, item);
+                    });
+
+                    await CheckAndAddChangedFiles(currentFolderItems, previousMetadata, changedFiles, restoredBackupDirectory);
+                }
+                else if (previousItem == null || await HasFileChangedAsync(item, previousItem, restoredBackupDirectory))
+                {
+                    changedFiles.Add(item);
                 }
             }
         }
 
+
+
         private async Task<bool> HasFileChangedAsync(FileSystemItem currentItem, MetadataItem previousItem, string restoredBackupDirectory)
         {
+            if (previousItem == null)
+            {
+                return true;
+            }
+
             if (currentItem.IsFolder)
             {
                 return false;
             }
 
-            string restoredFilePath = Path.Combine(restoredBackupDirectory, currentItem.Path);
-            string currentChecksum = await CalculateFileChecksum(restoredFilePath);
+            string currentFilePath = currentItem.Path;
+            string currentChecksum = await CalculateFileChecksum(currentFilePath);
             return currentChecksum != previousItem.Checksum;
         }
 
@@ -737,10 +900,8 @@ namespace Back_It_Up.Models
         {
             using (var md5 = MD5.Create())
             {
-                // Open the file asynchronously with AlphaFS
                 using (var stream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 128 * 1024, FileOptions.Asynchronous))
                 {
-                    // Read and compute the hash asynchronously
                     var hash = await md5.ComputeHashAsync(stream);
                     return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
                 }
@@ -781,23 +942,19 @@ namespace Back_It_Up.Models
 
         public async Task<string> ReadMetadataFromZip(string zipFilePath)
         {
-            // Ensure the file exists
             if (!File.Exists(zipFilePath))
             {
                 throw new FileNotFoundException("ZIP file not found.", zipFilePath);
             }
 
-            // Open the ZIP file
             using (var zipArchive = ZipFile.OpenRead(zipFilePath))
             {
-                // Find the metadata file
                 var metadataEntry = zipArchive.GetEntry("metadata.json");
                 if (metadataEntry == null)
                 {
                     throw new FileNotFoundException("Metadata file not found in the ZIP archive.", "metadata.json");
                 }
 
-                // Read the metadata file
                 using (var stream = metadataEntry.Open())
                 {
                     using (var memoryStream = new MemoryStream())
@@ -871,20 +1028,16 @@ namespace Back_It_Up.Models
 
         public async Task<string> FindRootPathForChangedItem(string changedItemPath)
         {
-            // Load metadata from the first backup
             List<MetadataItem> firstBackupMetadata = await LoadPreviousBackupMetadata("first");
 
-            // Find the root path for the changed item
             foreach (var metadataItem in firstBackupMetadata)
             {
                 if (changedItemPath.StartsWith(metadataItem.Path, StringComparison.OrdinalIgnoreCase))
                 {
-                    // Return the root path if a matching path is found
                     return metadataItem.RootPath;
                 }
             }
 
-            // If no matching root path is found, return null or an appropriate default
             return null;
         }
         public async Task CreateIncrementalMetadata(List<FileSystemItem> changedFiles)
@@ -1171,8 +1324,6 @@ namespace Back_It_Up.Models
                 }
             }
 
-            UpdateFolderChildrenRecursively(fileSystemItems);
-
             return fileSystemItems;
         }
 
@@ -1242,14 +1393,51 @@ namespace Back_It_Up.Models
 
         public async void LoadContents(BackupVersion backupVersion)
         {
+            if (backupVersion == null)
+            {
+                return;
+            }
+
             Version = backupVersion;
-            string zipFilePath = backupVersion.BackupZipFilePath;
-            string metadata = await ReadMetadataFromZip(zipFilePath);
-            ObservableCollection<FileSystemItem> FileSystemItems = CreateFileSystemItemsFromJson(metadata);
-            BackupItems = FileSystemItems;
-            BackupSetting = new BackupSetting();
+
+            ObservableCollection<FileSystemItem> cumulativeItems = new ObservableCollection<FileSystemItem>();
+
+            foreach (var version in BackupVersions.Where(v => v.Version <= backupVersion.Version))
+            {
+                string zipFilePath = version.BackupZipFilePath;
+                string metadata = await ReadMetadataFromZip(zipFilePath);
+                ObservableCollection<FileSystemItem> versionItems = CreateFileSystemItemsFromJson(metadata);
+
+                MergeFileSystemItems(cumulativeItems, versionItems);
+            }
+
+            BackupItems = cumulativeItems;
             BackupSetting = BackupVersions[0].BackupSetting;
         }
+
+        private void MergeFileSystemItems(ObservableCollection<FileSystemItem> cumulativeItems, ObservableCollection<FileSystemItem> versionItems)
+        {
+            foreach (var item in versionItems)
+            {
+                var existingItem = cumulativeItems.FirstOrDefault(i => i.Path == item.Path);
+
+                if (existingItem == null)
+                {
+                    cumulativeItems.Add(item);
+                }
+                else if (existingItem.IsFolder)
+                {
+                    MergeFileSystemItems(existingItem.Children, item.Children);
+                }
+
+                if (item.IsFolder && existingItem == null)
+                {
+                    MergeFileSystemItems(item.Children, item.Children);
+                }
+            }
+        }
+
+
 
         private FileSystemItem FindItemByPath(ObservableCollection<FileSystemItem> items, string path)
         {
@@ -1282,6 +1470,10 @@ namespace Back_It_Up.Models
                 DestinationPath = Path.GetDirectoryName(locations[index]);
                 readManifestFile(DestinationPath);
                 Messenger.Default.Send<BackupVersion>(BackupVersions[0], BackupStatus.Loaded);
+            }
+            else
+            {
+                Messenger.Default.Send<BackupVersion>(null, BackupStatus.Loaded);
             }
         }
 

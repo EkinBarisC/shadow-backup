@@ -20,9 +20,7 @@ using System.Windows.Shapes;
 
 namespace Back_It_Up.Views.UserControls
 {
-    /// <summary>
-    /// Interaction logic for SourceUserControl.xaml
-    /// </summary>
+
     public partial class SourceUserControl : UserControl
     {
         public SourceViewModel ViewModel { get; }
@@ -47,6 +45,12 @@ namespace Back_It_Up.Views.UserControls
 
 
             }
+        }
+
+        private void BackupNameTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            BackupStore store = App.GetService<BackupStore>();
+            store.SelectedBackup.BackupName = BackupNameTextBox.Text;
         }
     }
 }

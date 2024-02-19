@@ -16,7 +16,6 @@ namespace Back_It_Up.Models
 
         static Logger()
         {
-            // Configure Serilog
             log = new LoggerConfiguration().MinimumLevel.Debug().WriteTo.Console()
                 .WriteTo.File("C:\\Users\\User\\Documents\\backup_log.txt", rollingInterval: RollingInterval.Month)
                 .CreateLogger();
@@ -32,7 +31,6 @@ namespace Back_It_Up.Models
             log.Error(ex, message);
         }
 
-        // Add more methods as needed for Debug, Warning, etc.
     }
 
 

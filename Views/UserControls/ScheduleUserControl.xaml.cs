@@ -16,9 +16,7 @@ using System.Windows.Shapes;
 
 namespace Back_It_Up.Views.UserControls
 {
-    /// <summary>
-    /// Interaction logic for SheculeUserControl.xaml
-    /// </summary>
+
     public partial class ScheduleUserControl : UserControl
     {
         public ScheduleViewModel ViewModel { get; }

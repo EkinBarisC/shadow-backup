@@ -3,8 +3,10 @@ using Back_It_Up.Models;
 using Back_It_Up.Stores;
 using Back_It_Up.ViewModels.Pages;
 using Back_It_Up.Views.Pages;
+using GalaSoft.MvvmLight.Messaging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Collections.ObjectModel;
+using System.IO;
 
 public partial class LogsViewModel : ObservableObject
 {
@@ -19,14 +21,22 @@ public partial class LogsViewModel : ObservableObject
         _navigationService = navigationService;
     }
 
-    private void LoadLogs()
+    private async void LoadLogs()
     {
-        // Initialize the collection
         Logs = new ObservableCollection<LogEntry>();
+        string logFilePath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BackItUp", "logs.txt");
 
-        // Read the log file and parse each line
-        string logFilePath = "C:\\Users\\User\\Documents\\backup_log202401.txt"; // Adjust the path as necessary
-        var logLines = System.IO.File.ReadAllLines(logFilePath);
+        var logLines = new List<string>();
+        using (var fileStream = new FileStream(logFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+        using (var reader = new StreamReader(fileStream))
+        {
+            while (!reader.EndOfStream)
+            {
+                var line = await reader.ReadLineAsync();
+                logLines.Add(line);
+            }
+        }
+
         foreach (var line in logLines)
         {
             var logEntry = ParseLogLine(line);
@@ -40,29 +50,36 @@ public partial class LogsViewModel : ObservableObject
     [RelayCommand]
     private void OpenLogDetails(LogEntry logEntry)
     {
-        // Navigate to LogDetailsPage with the selected log entry
         BackupStore store = App.GetService<BackupStore>();
         store.CurrentLogEntry = logEntry;
         _navigationService.Navigate(typeof(LogDetailsPage));
+        Messenger.Default.Send<string>("log", BackupStatus.Log);
     }
 
 
     private LogEntry ParseLogLine(string line)
     {
-        // Implement logic to parse a line from the log file
-        // For example, split the line by a delimiter and extract timestamp and message
-        // Return null if the line doesn't match the expected format
+        var parts = line.Split(new[] { ' ' }, 5);
 
-        // Example implementation (adjust according to your log format):
-        var parts = line.Split(new[] { ' ' }, 3);
-        if (parts.Length >= 3 && DateTime.TryParse(parts[0], out var timestamp))
+        if (parts.Length >= 5)
         {
-            return new LogEntry
+            var dateTimePart = $"{parts[0]} {parts[1]} {parts[2]}";
+            if (DateTimeOffset.TryParse(dateTimePart, out var timestamp))
             {
-                Timestamp = timestamp,
-                Message = parts[2]
-            };
+                var logLevel = parts[3].Trim('[', ']');
+                var message = parts[4];
+
+                return new LogEntry
+                {
+                    Timestamp = timestamp,
+                    LogLevel = logLevel,
+                    Message = message
+                };
+            }
         }
+
         return null;
     }
+
+
 }

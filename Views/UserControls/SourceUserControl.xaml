@@ -26,8 +26,9 @@
 
         <ui:TextBox Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="5" PlaceholderText="enter backup name" PlaceholderEnabled="True"
                     HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="20" Margin="0,0,0,10"
-                    KeyDown="TextBox_KeyDown" x:Name="BackupNameTextBox"
+            x:Name="BackupNameTextBox" TextChanged="BackupNameTextBox_TextChanged"
                     />
+        <!--KeyDown="TextBox_KeyDown"-->
 
         <Button Grid.Row="1" Grid.Column="1"  Width="150" Height="100" Command="{Binding ViewModel.OpenSourceExplorerCommand}" >
             <Button.Content>
@@ -47,8 +48,7 @@
             </Button.Content>
         </Button>
 
-        <!--<Button Grid.Row="2" Grid.Column="3" Content="Prev" HorizontalAlignment="Left" />-->
-        <!--<Button Grid.Row="2" Grid.Column="3" Content="Next" HorizontalAlignment="Right"/>-->
+        <Button Grid.Row="2" Grid.Column="3" Content="Delete Backup" HorizontalAlignment="Right" Command="{Binding ViewModel.ShowDeleteConfirmationDialogCommand}" />
         <Button Grid.Row="2" Grid.Column="4" Content="Backup Now" HorizontalAlignment="Center" Command="{Binding ViewModel.PerformBackupCommand}" />
 
 

@@ -106,6 +106,22 @@ namespace Back_It_Up.Models
             Children = new ObservableCollection<FileSystemItem>();
         }
 
+        public FileSystemItem(string path, string name, bool isFolder, string fileType, long fileSizeInBytes = 0, FileSystemItem parent = null)
+        {
+            Path = path;
+            Name = name;
+            IsFolder = isFolder;
+            FileType = fileType;
+            FileSizeInBytes = fileSizeInBytes;
+            Parent = parent;
+            Children = new ObservableCollection<FileSystemItem>();
+            if (IsFolder)
+            {
+                AddDummyChild();
+            }
+        }
+
+
         public void CheckBox_Checked()
         {
             this.IsExpanded = true;
@@ -172,7 +188,6 @@ namespace Back_It_Up.Models
                         item.Parent = this;
                         Children.Add(item);
 
-                        // TODO: add dummy child only for lazy loading
                         if (item.IsFolder)
                         {
                             item.LoadContents();

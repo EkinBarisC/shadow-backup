@@ -17,7 +17,7 @@
     <Grid>
 
         <ui:DataGrid x:Name="LogsDataGrid" ItemsSource="{Binding ViewModel.Logs, Mode=TwoWay}"
-             AutoGenerateColumns="False" Grid.Column="0" IsReadOnly="True">
+             AutoGenerateColumns="False" Grid.Column="0" IsReadOnly="True" Height="400" >
             <i:Interaction.Triggers>
                 <i:EventTrigger EventName="MouseDoubleClick">
                     <i:InvokeCommandAction Command="{Binding ViewModel.OpenLogDetailsCommand, RelativeSource={RelativeSource AncestorType={x:Type local:LogsPage}} }"
@@ -25,7 +25,7 @@
                 </i:EventTrigger>
             </i:Interaction.Triggers>
             <ui:DataGrid.Columns>
-                <DataGridTextColumn Header="Timestamp" Binding="{Binding Timestamp}" />
+                <DataGridTextColumn Header="Timestamp" Binding="{Binding FormattedTimestamp}" />
                 <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="*" />
             </ui:DataGrid.Columns>
         </ui:DataGrid>

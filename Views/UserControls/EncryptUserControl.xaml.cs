@@ -16,9 +16,7 @@ using System.Windows.Shapes;
 
 namespace Back_It_Up.Views.UserControls
 {
-    /// <summary>
-    /// Interaction logic for EncryptUserControl.xaml
-    /// </summary>
+
     public partial class EncryptUserControl : UserControl
     {
         public EncryptViewModel ViewModel { get; }
